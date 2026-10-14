@@ -92,7 +92,7 @@
     const pct = c.n ? (c.match / c.n) * 100 : null;
     const k = (lbl, val, unit, sw) => `<div class="kpi"><div class="lbl">${sw ? `<span class="sw" style="background:${sw}"></span>` : ""}${lbl}</div><div class="val">${val}<small>${unit}</small></div></div>`;
     $("kpis").innerHTML =
-      k("太陽能即時發電", fmt(d.subtotal), "MW") +
+      k("太陽能即時發購電量", fmt(d.subtotal), "MW") +
       k("資料一致性（今日）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") +
       k("台電自有", fmt(ownMW), "MW", "var(--s-own)") +
       k("購電", fmt(purMW), "MW", "var(--s-est)");
