@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台電太陽能即時發電</title>
+<meta name="description" content="台電各機組太陽能即時發電量、台電自有場址分布與資料一致性">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>台電太陽能即時發電</h1>
+    <p class="sub" id="dataTime">載入中…</p>
+    <div class="banner" id="banner" hidden></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ① 上方：全台地圖＋即時發電 -->
+  <section class="panel" aria-labelledby="h-map">
+    <div class="panel-head">
+      <h2 id="h-map">全台案場位置與即時發電量</h2>
+      <p class="hint">地圖上為台電自有太陽光電發電站；購電案場位置未公開，列在右側</p>
+    </div>
+    <div class="map-grid">
+      <div class="map-box">
+        <svg id="map" role="img" aria-label="台灣地圖與台電自有太陽光電發電站位置"></svg>
+        <div class="map-legend" id="mapLegend"></div>
+      </div>
+      <aside class="side">
+        <div class="kpis" id="kpis"></div>
+        <h3>購電案場（位置未公開）</h3>
+        <ol class="bars" id="purchasedBars"></ol>
+        <p class="note">「其它購電太陽能」為台電依取樣比例估算的整併項目（台電註7）。</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ② 下方：台電自有與購電＋每日發電總量＋資料一致性 -->
+  <section class="panel" aria-labelledby="h-day">
+    <div class="panel-head">
+      <h2 id="h-day">今日發電總量與資料一致性</h2>
+      <p class="hint">06:00–18:00 每 10 分鐘一筆，台電資料約延遲 10–15 分鐘</p>
+    </div>
+    <div class="day-grid">
+      <figure class="chart-card wide">
+        <figcaption>① 發電量組成（堆疊面積圖；虛線為台電小計）</figcaption>
+        <div class="legend" id="areaLegend"></div>
+        <div class="chart" id="areaChart"></div>
+      </figure>
+      <figure class="chart-card">
+        <figcaption>② 資料一致性</figcaption>
+        <div class="big" id="consistBig">–</div>
+        <p class="small" id="consistText"></p>
+        <div class="chart" id="diffChart"></div>
+        <p class="small muted">長條＝各機組加總 − 台電小計（MW）；灰色帶 ±0.05 MW 為小計四捨五入範圍</p>
+      </figure>
+    </div>
+
+    <div class="tables">
+      <div>
+        <h3>台電自有</h3>
+        <table class="units" id="ownTable"></table>
+      </div>
+      <div>
+        <h3>購電</h3>
+        <table class="units" id="purTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>資料來源：台灣電力公司「各機組發電量」開放資料（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺，經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
+    <p>裝置容量空白者為試運轉案場，依台電註10暫不揭露。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
+  </footer>
+</main>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script src="d3.min.js"></script>
+<script src="topojson-client.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
