@@ -93,12 +93,18 @@
     const k = (lbl, val, unit, sw) => `<div class="kpi"><div class="lbl">${sw ? `<span class="sw" style="background:${sw}"></span>` : ""}${lbl}</div><div class="val">${val}<small>${unit}</small></div></div>`;
     const ser = d.series || [];
     const peak = ser.reduce((m, s) => (s.sub > (m ? m.sub : -1) ? s : m), null);
-    const energy = ser.reduce((a, s) => a + (s.sub || 0), 0) / 6; // 每筆代表 10 分鐘 → MWh
+    // 梯形法：相鄰兩筆取平均 × 時間間隔（小時）；間隔超過 30 分鐘（缺資料）不內插
+    const mins = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    let energy = 0;
+    for (let i = 1; i < ser.length; i++) {
+      const dt = mins(ser[i].t) - mins(ser[i - 1].t);
+      if (dt > 0 && dt <= 30) energy += (((ser[i - 1].sub || 0) + (ser[i].sub || 0)) / 2) * (dt / 60);
+    }
     $("kpis").innerHTML =
       k("即時發購電量", fmt(d.subtotal), "MW") +
       k("資料一致性（今日）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") +
       k(`今日尖峰發購電量${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW") +
-      k(`今日累計總發購電量${ser.length ? "（06:00–" + ser[ser.length - 1].t + "）" : ""}`, ser.length ? fmt(energy, 0) : "–", "MWh") +
+      k(`今日累計總發購電量（估算${ser.length ? "，06:00–" + ser[ser.length - 1].t : ""}）`, ser.length ? fmt(energy, 0) : "–", "MWh") +
       k("台電自有", fmt(ownMW), "MW", "var(--s-own)") +
       k("購電", fmt(purMW), "MW", "var(--s-est)");
   }
