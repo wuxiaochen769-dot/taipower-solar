@@ -147,7 +147,7 @@
         const live = LIVE_UNITS.includes(s.unit)
           ? row("即時發電", fmt(unitNet[s.unit]) + " MW")
           : row("即時發電", "含在「其它台電自有」") + row("其它台電自有合計", fmt(otherOwn) + " MW");
-        showTip(evt, `<b>${s.name}</b>${row("位置", s.county + s.town + (s.village || ""))}${row("裝置容量", fmt(s.capacityKW / 1000, 2) + " MW")}${s.trialKW ? row("其中試運轉", fmt(s.trialKW / 1000, 2) + " MW") : ""}${live}${row("場址數", s.sites)}${row("定位精度", s.precision)}`);
+        showTip(evt, `<b>${s.name}</b>${row("位置", s.county + s.town + (s.village || ""))}${row("裝置容量（2024 場址資料）", fmt(s.capacityKW / 1000, 2) + " MW")}${s.trialKW ? row("其中試運轉", fmt(s.trialKW / 1000, 2) + " MW") : ""}${live}${row("場址數", s.sites)}${row("定位精度", s.precision)}`);
       })
       .on("mouseleave", hideTip);
     g.selectAll("text").data(data.filter((s) => LIVE_UNITS.includes(s.unit))).join("text")
@@ -155,7 +155,7 @@
       .text((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`);
 
     $("mapLegend").innerHTML =
-      `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝裝置容量）</span>` +
+      `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝2024 場址資料的裝置容量）</span>` +
       `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別即時發電量</span>` +
       `<span>位置為村里或鄉鎮中心點（概略）</span>`;
   }
