@@ -235,7 +235,7 @@
     const rows = units.slice().sort((a, b) => (b.net || 0) - (a.net || 0));
     const head = `<tr><th>機組</th><th class="n">即時發電 (MW)</th><th class="n">裝置容量 (MW)</th><th class="n">容量因數</th><th>狀態</th></tr>`;
     const body = rows.map((u) => {
-      const st = u.status ? `<span class="pill">${shortStatus(u.status)}</span>` : u.capacity == null ? `<span class="pill">試運轉・容量未揭露</span>` : u.name.startsWith("其它") ? `<span class="pill">整併項目</span>` : "";
+      const st = u.status ? `<span class="pill">${shortStatus(u.status)}</span>` : u.capacity == null ? `<span class="pill">試運轉・暫不計入容量</span>` : u.name.startsWith("其它") ? `<span class="pill">整併項目</span>` : "";
       return `<tr><td>${u.name}</td><td class="n">${fmt(u.net, u.net >= 100 ? 1 : 2)}</td><td class="n">${u.capacity == null ? "–" : fmt(u.capacity)}</td><td class="n">${u.cf == null ? "–" : fmt(u.cf) + "%"}</td><td>${st}</td></tr>`;
     }).join("");
     const total = rows.reduce((s, u) => s + (u.net || 0), 0);
