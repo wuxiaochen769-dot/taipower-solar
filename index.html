@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）各機組即時發購電量、台電自有場址分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261102b">
+<link rel="stylesheet" href="style.css?v=20261102c">
 </head>
 <body>
 <header class="top">
@@ -30,6 +30,8 @@
     <p class="hint">第一次來嗎？先看看太陽光電怎麼發電、哪些因素會影響發電，再到「今日發購電量與案場資訊」看今天的資料。</p>
     <button class="go" type="button" data-go="today">前往今日發購電量與案場資訊 →</button>
   </section>
+  <div class="group">
+    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">太陽光電入門</h2><p class="group-desc">認識太陽光電怎麼發電，以及哪些因素會影響發電。</p></div></div>
   <section class="panel" aria-labelledby="h-flow">
     <div class="panel-head"><h2 id="h-flow">太陽光電怎麼發電</h2><p class="hint">從陽光到用電的路徑</p></div>
     <div class="flow">
@@ -51,6 +53,27 @@
       <div class="card"><h4>遮蔽與汙損</h4><p>樹木、建築的陰影，或灰塵、落葉，都會讓發電變少。</p></div>
     </div>
   </section>
+  </div>
+  <div class="group">
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">台灣太陽光電現況</h2><p class="group-desc">了解台灣目前的太陽光電裝置容量與推動目標。</p></div></div>
+  <section class="panel" aria-labelledby="h-goal">
+    <div class="panel-head"><h2 id="h-goal">台灣太陽光電推動目標</h2><p class="hint">政府原訂 114 年太陽光電裝置容量達 20 GW</p></div>
+    <div class="goal">
+      <div class="goal-nums"><span class="goal-now">16.17 <small>GW</small></span><span class="goal-sep">／</span><span class="goal-target">20 GW</span><span class="goal-pct">達成 80.8%</span></div>
+      <div class="goal-bar" role="img" aria-label="裝置容量 16.17 GW，目標 20 GW，達成 80.8%"><i style="width:80.8%"></i></div>
+      <table class="units goal-table">
+        <thead><tr><th>時間</th><th>太陽光電裝置容量</th><th>達成率</th></tr></thead>
+        <tbody>
+          <tr><td>114 年 12 月底</td><td class="n">15.47 GW</td><td class="n">77.3%</td></tr>
+          <tr><td>115 年 8 月底</td><td class="n">16.17 GW</td><td class="n">80.8%</td></tr>
+        </tbody>
+      </table>
+      <p class="note">裝置容量為各時點的累計總量，數值以無條件捨去表示。資料來源：經濟部能源署「4-02 再生能源裝(設)置容量」；推動目標：<a href="https://www.ey.gov.tw/Page/9277F759E41CCD91/ca9df3bb-45fb-410b-be39-b3ba75fb3940" target="_blank" rel="noopener">行政院（105 年）</a>。</p>
+    </div>
+  </section>
+  </div>
+  <div class="group">
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">看懂儀表板</h2><p class="group-desc">前往「今日發購電量與案場資訊」之前，先了解名詞與資料說明。</p></div></div>
   <section class="panel" aria-labelledby="h-terms">
     <div class="panel-head"><h2 id="h-terms">看懂儀表板的名詞</h2></div>
     <dl class="terms">
@@ -60,6 +83,15 @@
       <dt>試運轉案場</dt><dd>取得電業執照前的測試階段，暫不計入裝置容量（台電註 10）。</dd>
     </dl>
   </section>
+  <section class="panel" aria-labelledby="h-notes">
+    <div class="panel-head"><h2 id="h-notes">備註說明</h2></div>
+    <ol class="notes">
+      <li><b>資料更新</b>：台電每 10 分鐘更新一次，本網站每 5 分鐘讀取；台電資料約延遲 10～15 分鐘。</li>
+      <li><b>購電與台電自有發電</b>：全台大部分太陽光電案場由民間業者設置，台電向其購買電力，因此購電量遠高於台電自有發電。</li>
+      <li><b>資料一致性</b>：各機組發電量加總與台電公布小計相差在 ±0.05 MW 內即為一致，代表資料收集沒有遺漏，不代表台電數值本身的準確度。</li>
+    </ol>
+  </section>
+  </div>
 </main>
 
 <!-- 主題二：今日發購電量與案場資訊（原有內容不變） -->
