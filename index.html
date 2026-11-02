@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）各機組即時發購電量、台電自有場址分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261019">
+<link rel="stylesheet" href="style.css?v=20261102">
 </head>
 <body>
 <header class="top">
@@ -15,10 +15,55 @@
     <h1>太陽光電資訊儀表板</h1>
     <p class="sub" id="dataTime">載入中…</p>
     <div class="banner" id="banner" hidden></div>
+    <nav class="tabs" role="tablist" aria-label="網站主題">
+      <button type="button" role="tab" id="tab-intro" aria-selected="true" aria-controls="intro">① 認識太陽光電</button>
+      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today">② 今日發購電量與案場資訊</button>
+    </nav>
   </div>
 </header>
 
-<main class="wrap">
+<div class="tab-wrap">
+<!-- 主題一：認識太陽光電 -->
+<main class="wrap tab-panel" id="intro" role="tabpanel" aria-labelledby="tab-intro">
+  <section class="panel">
+    <p class="lead"><b>本網站以台電與政府公開資料，介紹太陽光電並呈現全台即時發電情形，提供一般民眾與業者參考。</b></p>
+    <p class="hint">第一次來嗎？先看看太陽光電怎麼發電、哪些因素會影響發電，再到「今日發購電量與案場資訊」看今天的資料。</p>
+    <button class="go" type="button" data-go="today">前往今日發購電量與案場資訊 →</button>
+  </section>
+  <section class="panel" aria-labelledby="h-flow">
+    <div class="panel-head"><h2 id="h-flow">太陽光電怎麼發電</h2><p class="hint">從陽光到用電的路徑</p></div>
+    <div class="flow">
+      <div class="step"><b>① 太陽光</b><span>陽光照射到光電板</span></div>
+      <div class="step"><b>② 光電板</b><span>把陽光轉成直流電</span></div>
+      <div class="step"><b>③ 接線箱</b><span>匯集多串光電板的電，並有保護裝置</span></div>
+      <div class="step"><b>④ 變流器</b><span>直流電轉成交流電</span></div>
+      <div class="step"><b>⑤ 升壓與計量</b><span>大型案場升壓；電表計算送入電網的電量</span></div>
+      <div class="step"><b>⑥ 台電電網</b><span>輸電、配電到各地</span></div>
+      <div class="step"><b>⑦ 用戶</b><span>家庭、工廠使用</span></div>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="h-factor">
+    <div class="panel-head"><h2 id="h-factor">影響發電的因素</h2><p class="hint">同一座案場，每天的發電量都不一樣</p></div>
+    <div class="intro-grid">
+      <div class="card"><h4>日射量</h4><p>照到光電板的陽光越多，發電越多，是最主要的因素。</p></div>
+      <div class="card"><h4>天氣</h4><p>雲量、降雨、空氣品質會讓陽光變弱。</p></div>
+      <div class="card"><h4>溫度</h4><p>板子溫度越高，發電效率越低，涼爽的晴天反而發得好。</p></div>
+      <div class="card"><h4>遮蔽與汙損</h4><p>樹木、建築的陰影，或灰塵、落葉，都會讓發電變少。</p></div>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="h-terms">
+    <div class="panel-head"><h2 id="h-terms">看懂儀表板的名詞</h2></div>
+    <dl class="terms">
+      <dt>裝置容量</dt><dd>案場設備的發電規模（MW），代表最多能發多少電。</dd>
+      <dt>淨發電量</dt><dd>台電公布各機組在某個時刻的發電量（MW），每 10 分鐘更新一次。</dd>
+      <dt>發購電量</dt><dd>台電自有案場的發電量，加上台電向民間案場購買的電量。</dd>
+      <dt>試運轉案場</dt><dd>取得電業執照前的測試階段，暫不計入裝置容量（台電註 10）。</dd>
+    </dl>
+  </section>
+</main>
+
+<!-- 主題二：今日發購電量與案場資訊（原有內容不變） -->
+<main class="wrap tab-panel off" id="today" role="tabpanel" aria-labelledby="tab-today">
   <!-- ① 上方：全台地圖＋即時發電 -->
   <section class="panel" aria-labelledby="h-map">
     <div class="panel-head">
@@ -77,6 +122,7 @@
     <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
   </footer>
 </main>
+</div>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
@@ -84,5 +130,29 @@
 <script src="topojson-client.min.js"></script>
 <script src="config.js?v=20261019"></script>
 <script src="app.js?v=20261019"></script>
+<script>
+// 主題分頁切換：網址 #intro／#today 可直接開啟指定分頁
+(function () {
+  var ids = ["intro", "today"];
+  function show(id) {
+    if (ids.indexOf(id) < 0) id = "intro";
+    ids.forEach(function (k) {
+      document.getElementById(k).classList.toggle("off", k !== id);
+      document.getElementById("tab-" + k).setAttribute("aria-selected", k === id ? "true" : "false");
+    });
+    if (id === "today") setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 30); // 讓圖表依可見寬度重畫
+  }
+  ids.forEach(function (k) {
+    document.getElementById("tab-" + k).addEventListener("click", function () {
+      if (location.hash !== "#" + k) location.hash = k; else show(k);
+    });
+  });
+  document.querySelectorAll("[data-go]").forEach(function (b) {
+    b.addEventListener("click", function () { location.hash = b.getAttribute("data-go"); });
+  });
+  window.addEventListener("hashchange", function () { show(location.hash.slice(1)); });
+  show(location.hash.slice(1));
+})();
+</script>
 </body>
 </html>
