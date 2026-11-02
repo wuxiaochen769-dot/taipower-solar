@@ -186,7 +186,7 @@
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
       .call(d3.axisBottom(x).tickValues(d3.range(360, 1081, 120)).tickFormat((v) => String(v / 60).padStart(2, "0") + ":00"));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
-    svg.append("text").attr("x", 4).attr("y", m.t + 4).attr("fill", "var(--muted)").attr("font-size", 11).text("MW");
+    svg.append("text").attr("x", 4).attr("y", m.t + 4).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
     const stack = d3.stack().keys(GROUPS.map((g) => g.key))(series);
     const area = d3.area().x((p) => x(toMin(p.data.t))).y0((p) => y(p[0])).y1((p) => y(p[1])).curve(d3.curveMonotoneX);
     svg.append("g").selectAll("path").data(stack).join("path").attr("d", area).style("fill", (s, i) => GROUPS[i].color).style("stroke", "var(--card)").style("stroke-width", 1);
