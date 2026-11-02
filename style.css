@@ -114,3 +114,24 @@ dl.terms dd { margin: 0; color: var(--ink2); }
   .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .flow .step:nth-child(2n):not(:last-child)::after { content: none; }
 }
+
+/* ───── 第一頁：三部分分組、推動目標、備註說明（2026-11-02） ───── */
+.notes { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; font-size: 17.5px; color: var(--ink2); }
+.notes b { color: var(--ink); }
+.group { margin: 28px 0 0; }
+.group-head { display: flex; align-items: flex-start; gap: 12px; padding: 0 2px 2px; }
+.group-no { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--card); font-weight: 700; font-size: 18px; display: grid; place-items: center; margin-top: 2px; }
+.group-title { font-size: 27.5px; margin: 0; color: var(--accent); }
+.group-desc { margin: 2px 0 0; color: var(--muted); font-size: 16.25px; }
+.group .panel { margin: 12px 0; }
+.group .panel h2 { font-size: 21.25px; }
+
+.goal { display: grid; gap: 12px; }
+.goal-nums { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-variant-numeric: tabular-nums; }
+.goal-now { font-size: 40px; font-weight: 700; color: var(--accent); }
+.goal-now small { font-size: 18px; font-weight: 500; color: var(--muted); }
+.goal-sep, .goal-target { font-size: 22px; color: var(--muted); }
+.goal-pct { font-size: 18px; font-weight: 700; color: var(--ink); margin-left: 6px; }
+.goal-bar { height: 14px; background: var(--grid); border-radius: 7px; overflow: hidden; }
+.goal-bar i { display: block; height: 100%; background: var(--accent); border-radius: 7px; }
+.goal-table { max-width: 560px; }
