@@ -177,7 +177,7 @@
     const el = d3.select("#areaChart"); el.selectAll("*").remove();
     $("areaLegend").innerHTML = GROUPS.slice().reverse().map((g) => `<span><i style="background:${g.color}"></i>${g.name}</span>`).join("") + `<span><i class="dash"></i>台電小計</span>`;
     if (!series || !series.length) { el.append("p").attr("class", "small muted").text("今天尚無資料"); return; }
-    const W = el.node().clientWidth || 700, H = Math.max(240, Math.round(W * 0.42)), m = { t: 10, r: 22, b: 26, l: 52 };
+    const W = el.node().clientWidth || 700, H = Math.max(240, Math.round(W * 0.42)), m = { t: 24, r: 22, b: 28, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const toMin = (t) => +t.slice(0, 2) * 60 + +t.slice(3);
     const x = d3.scaleLinear().domain([360, 1080]).range([m.l, W - m.r]);
@@ -186,7 +186,7 @@
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
       .call(d3.axisBottom(x).tickValues(d3.range(360, 1081, 120)).tickFormat((v) => String(v / 60).padStart(2, "0") + ":00"));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
-    svg.append("text").attr("x", 4).attr("y", m.t + 4).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
+    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
     const stack = d3.stack().keys(GROUPS.map((g) => g.key))(series);
     const area = d3.area().x((p) => x(toMin(p.data.t))).y0((p) => y(p[0])).y1((p) => y(p[1])).curve(d3.curveMonotoneX);
     svg.append("g").selectAll("path").data(stack).join("path").attr("d", area).style("fill", (s, i) => GROUPS[i].color).style("stroke", "var(--card)").style("stroke-width", 1);
@@ -212,7 +212,7 @@
     $("consistText").textContent = c.n ? `${c.match} / ${c.n} 個時段的各機組加總與台電小計一致（最大差值 ${fmt(c.maxAbs, 3)} MW）` : "";
     const el = d3.select("#diffChart"); el.selectAll("*").remove();
     const series = d.series || []; if (!series.length) return;
-    const W = el.node().clientWidth || 320, H = 150, m = { t: 8, r: 20, b: 22, l: 40 };
+    const W = el.node().clientWidth || 320, H = 160, m = { t: 10, r: 20, b: 26, l: 48 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const toMin = (t) => +t.slice(0, 2) * 60 + +t.slice(3);
     const x = d3.scaleLinear().domain([360, 1080]).range([m.l, W - m.r]);

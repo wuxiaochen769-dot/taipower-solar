@@ -50,7 +50,7 @@ h3 { font-size: 18.75px; margin: 18px 0 8px; color: var(--ink2); }
 .kpi .val { font-size: 27.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .kpi .val small { font-size: 16.25px; font-weight: 500; color: var(--muted); margin-left: 3px; }
 .kpi .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
-.bars { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
+.bars { list-style: none; margin: 0; padding: 0; max-height: 525px; overflow: auto; }
 .bars li { display: grid; grid-template-columns: 8.5em 1fr 6.4em; align-items: center; gap: 8px; font-size: 16.25px; padding: 3px 0; }
 .bars .track { height: 8px; background: var(--grid); border-radius: 4px; overflow: hidden; }
 .bars .fill { height: 100%; background: var(--s-site); border-radius: 4px; }
@@ -72,10 +72,10 @@ figcaption { font-weight: 700; font-size: 18.125px; }
 .big.bad { color: var(--warn); }
 .small { font-size: 16.25px; margin: 2px 0 6px; }
 .muted { color: var(--muted); }
-.tables { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; }
+.tables { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; }
 table.units { width: 100%; border-collapse: collapse; font-size: 16.875px; }
 .units th, .units td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
-.units th { font-size: 15px; color: var(--muted); font-weight: 500; }
+.units th { font-size: 15px; color: var(--muted); font-weight: 500; white-space: nowrap; }
 .units td.n { text-align: right; font-variant-numeric: tabular-nums; }
 .units .pill { font-size: 13.75px; padding: 1px 7px; border-radius: 9px; background: var(--grid); color: var(--ink2); white-space: nowrap; }
 .foot { color: var(--muted); font-size: 15.625px; padding: 6px 0 30px; }
