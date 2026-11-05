@@ -3,5 +3,6 @@
 window.SOLAR_CONFIG = {
   LIVE_URL: "https://script.google.com/macros/s/AKfycbwa7Z_PlOfS4uqqXm898XVrUzRDxgZkoRXqqwJ0ztqplA7EEIQSN5OjSvZybECaV_3r/exec",                 // 例如 "https://script.google.com/macros/s/xxxxxxxx/exec"
   REFRESH_MINUTES: 5,           // 幾分鐘重新抓一次即時資料
-  STALE_MINUTES: 40             // 資料時間超過幾分鐘未更新就顯示提醒
+  STALE_MINUTES: 40,            // 資料時間超過幾分鐘未更新就顯示提醒
+  STATS_START: "2026-10-13"     // 第三分頁統計的起始日（系統完整運作的第一天）
 };

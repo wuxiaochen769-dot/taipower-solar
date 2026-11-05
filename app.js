@@ -45,7 +45,9 @@
     ]);
     await refresh();
     setInterval(refresh, (CFG.REFRESH_MINUTES || 5) * 60000);
-    let t; window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => last && renderAll(last), 200); });
+    refreshStats();
+    setInterval(refreshStats, 30 * 60000);
+    let t; window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { if (last) renderAll(last); if (stats) renderStats(stats); }, 200); });
   }
 
   let last = null;
@@ -240,6 +242,133 @@
     }).join("");
     const total = rows.reduce((s, u) => s + (u.net || 0), 0);
     $(id).innerHTML = `<thead>${head}</thead><tbody>${body}</tbody><tfoot><tr><td><b>合計</b></td><td class="n"><b>${fmt(total)}</b></td><td colspan="3"></td></tr></tfoot>`;
+  }
+
+
+  // ───── 第三分頁：收集紀錄與統計（2026-11-05 新增）─────
+  // 資料：Apps Script ?view=stats（雲端收集的每日統計）；未設定 LIVE_URL 時使用 sample-stats.json
+  let stats = null;
+  const SLOTS = 73; // 06:00–18:00 每 10 分鐘一筆
+  const DAY = 86400000;
+  const toDate = (s) => new Date(s + "T00:00:00+08:00");
+  const ymd = (d) => new Date(d.getTime() + 8 * 3600e3).toISOString().slice(0, 10);
+  const md = (s) => s.slice(5).replace("-", "/");
+  const pctTxt = (v) => (v == null ? "–" : fmt(v * 100, v === 1 ? 0 : 2) + "%");
+
+  async function loadStats() {
+    const url = CFG.LIVE_URL ? CFG.LIVE_URL + (CFG.LIVE_URL.includes("?") ? "&" : "?") + "view=stats&_=" + Date.now() : "sample-stats.json";
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const j = await res.json();
+    if (j.error) throw new Error(j.error);
+    if (!CFG.LIVE_URL) j.sample = true;
+    return j;
+  }
+
+  async function refreshStats() {
+    try { stats = await loadStats(); renderStats(stats); }
+    catch (e) { if (!stats) $("statsNote").textContent = "統計資料讀取失敗（" + e.message + "），稍後會自動重試。"; }
+  }
+
+  function summarize(days) {
+    const n = d3.sum(days, (d) => d.n), cons = d3.sum(days, (d) => d.cons);
+    const peakDay = days.reduce((m, d) => (d.peak != null && (!m || d.peak > m.peak) ? d : m), null);
+    const lowDay = days.reduce((m, d) => (d.peak != null && (!m || d.peak < m.peak) ? d : m), null);
+    return {
+      days: days.length, n, cons, exp: days.length * SLOTS,
+      comp: days.length ? n / (days.length * SLOTS) : null, consPct: n ? cons / n : null,
+      full: days.filter((d) => d.n >= SLOTS).length,
+      avgPeak: d3.mean(days, (d) => d.peak), avgNoon: d3.mean(days.filter((d) => d.noon != null), (d) => d.noon),
+      peakDay, lowDay,
+    };
+  }
+
+  function renderStats(j) {
+    const start = CFG.STATS_START || "2026-10-13";
+    const days = (j.days || []).filter((d) => d.d >= start).sort((a, b) => (a.d < b.d ? -1 : 1));
+    $("statsNote").textContent = j.sample ? "目前顯示的是示範資料（電腦端收集，至 2026-11-04）。" : "";
+    if (!days.length) { $("statsKpis").innerHTML = '<p class="small muted">尚無統計資料</p>'; return; }
+    const lastDay = days[days.length - 1].d, s = summarize(days);
+    $("statsRange").textContent = `統計期間 ${start.replace(/-/g, "/")}～${lastDay.replace(/-/g, "/")}（已結束的日期），資料更新於 ${j.generatedAt || "–"}`;
+    const k = (lbl, val, unit, note) => `<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}<small>${unit}</small></div>${note ? `<div class="kpi-note">${note}</div>` : ""}</div>`;
+    $("statsKpis").innerHTML =
+      k("收集天數", s.days, "天", `${md(start)}～${md(lastDay)}`) +
+      k("收集完整度", pctTxt(s.comp).replace("%", ""), "%", `${s.n.toLocaleString()} / ${s.exp.toLocaleString()} 筆`) +
+      k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
+      k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
+    renderTrend(days);
+    renderWeeks(days, start, lastDay);
+    renderMonths(days, start, lastDay);
+  }
+
+  function renderTrend(days) {
+    const el = d3.select("#trendChart"); el.selectAll("*").remove();
+    $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發購電量</span><span><i style="background:var(--s-site)"></i>每日 12:00 發購電量</span>`;
+    const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
+    const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
+    const x = d3.scaleTime().domain([toDate(days[0].d), toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
+    const y = d3.scaleLinear().domain([0, (d3.max(days, (d) => d.peak) || 1) * 1.08]).nice().range([H - m.b, m.t]);
+    svg.append("g").attr("class", "gridline").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(W - m.l - m.r)).tickFormat(""));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
+      .call(d3.axisBottom(x).tickValues(days.filter((d, i) => i % Math.max(1, Math.ceil(days.length / Math.floor(W / 70))) === 0).map((d) => toDate(d.d))).tickFormat((d) => md(ymd(d))));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
+    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
+    const line = (key) => d3.line().defined((d) => d[key] != null).x((d) => x(toDate(d.d))).y((d) => y(d[key]));
+    svg.append("path").datum(days).attr("d", line("noon")).style("fill", "none").style("stroke", "var(--s-site)").style("stroke-width", 2);
+    svg.append("path").datum(days).attr("d", line("peak")).style("fill", "none").style("stroke", "var(--accent)").style("stroke-width", 2.5);
+    svg.append("g").selectAll("circle").data(days).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 3.5).style("fill", "var(--accent)");
+    const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).style("stroke", "var(--muted)").style("opacity", 0);
+    const bis = d3.bisector((d) => toDate(d.d)).center;
+    svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", H - m.t - m.b).style("fill", "transparent")
+      .on("mousemove", (evt) => {
+        const [mx] = d3.pointer(evt), d = days[bis(days, x.invert(mx))];
+        cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
+        showTip(evt, `<b>${d.d}</b>${row("尖峰發購電量", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發購電量", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}`);
+      })
+      .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
+  }
+
+  function statRow(label, sub, ds, extra) {
+    const s = summarize(ds);
+    return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.avgPeak)}</td>` +
+      `<td class="n">${s.peakDay ? fmt(s.peakDay.peak) + `<div class="sub-cell">${md(s.peakDay.d)}</div>` : "–"}</td>` +
+      `<td class="n">${s.lowDay ? fmt(s.lowDay.peak) + `<div class="sub-cell">${md(s.lowDay.d)}</div>` : "–"}</td>` +
+      `<td class="n">${fmt(s.avgNoon)}</td><td class="n">${pctTxt(s.comp)}</td></tr>`;
+  }
+
+  function renderWeeks(days, start, lastDay) {
+    // 自統計起始日起每 7 天為一週（不以週一切分，避免第一週不完整）
+    let ws = toDate(start);
+    const rows = []; let i = 1;
+    while (ymd(ws) <= lastDay) {
+      const we = new Date(ws.getTime() + 6 * DAY), a = ymd(ws), b = ymd(we);
+      const ds = days.filter((d) => d.d >= a && d.d <= b);
+      if (ds.length) {
+        const done = b <= lastDay && ds.length === 7;
+        rows.push(statRow(`第 ${i} 週`, `${md(a)}～${md(b)}`, ds, `<td class="n">${ds.length}</td><td>${done ? '<span class="pill">完整</span>' : '<span class="pill warn">進行中</span>'}</td>`));
+        i++;
+      }
+      ws = new Date(ws.getTime() + 7 * DAY);
+    }
+    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">天數</th><th>狀態</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+  }
+
+  function renderMonths(days, start, lastDay) {
+    const keys = [...new Set(days.map((d) => d.d.slice(0, 7)))];
+    const rows = keys.map((mk) => {
+      const ds = days.filter((d) => d.d.startsWith(mk));
+      const [yy, mm] = mk.split("-").map(Number);
+      const dim = new Date(Date.UTC(yy, mm, 0)).getUTCDate(), mEnd = `${mk}-${String(dim).padStart(2, "0")}`;
+      const ended = mEnd <= lastDay;
+      const upto = ended ? dim : Number(lastDay.slice(8, 10));
+      const have = new Set(ds.map((d) => d.d.slice(8, 10)).map(Number));
+      let miss = 0, run = 0, longest = 0;
+      for (let dd = 1; dd <= upto; dd++) { if (have.has(dd)) run = 0; else { miss++; run++; longest = Math.max(longest, run); } }
+      const rep = !ended ? '<span class="pill warn">月底判定</span>' : miss > 5 || longest > 3 ? '<span class="pill bad">僅供參考</span>' : '<span class="pill ok">具代表性</span>';
+      return statRow(`${yy} 年 ${mm} 月`, ended ? "已結束" : "進行中", ds,
+        `<td class="n">${ds.length} / ${dim}</td><td class="n">${miss}</td><td class="n">${longest}</td><td>${rep}</td>`);
+    });
+    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">有資料天數</th><th class="n">缺測天數</th><th class="n">最長連續缺測</th><th>代表性</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
   init().catch((e) => { $("dataTime").textContent = "載入失敗：" + e.message; });

@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）各機組即時發購電量、台電自有場址分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261102d">
+<link rel="stylesheet" href="style.css?v=20261105">
 </head>
 <body>
 <header class="top">
@@ -18,6 +18,7 @@
     <nav class="tabs" role="tablist" aria-label="網站主題">
       <button type="button" role="tab" id="tab-intro" aria-selected="true" aria-controls="intro">① 認識太陽光電</button>
       <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today">② 今日發購電量與案場資訊</button>
+      <button type="button" role="tab" id="tab-stats" aria-selected="false" aria-controls="stats">③ 收集紀錄與統計</button>
     </nav>
   </div>
 </header>
@@ -154,25 +155,71 @@
     <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
   </footer>
 </main>
+
+<!-- 主題三：收集紀錄與統計（2026-11-05 新增） -->
+<main class="wrap tab-panel off" id="stats" role="tabpanel" aria-labelledby="tab-stats">
+  <section class="panel">
+    <p class="lead"><b>本頁整理每日收集的台電資料：系統是否穩定收集，以及每日尖峰的變化。</b></p>
+    <p class="hint" id="statsRange">載入中…</p>
+    <p class="hint" id="statsNote"></p>
+  </section>
+  <div class="group">
+    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">系統穩定度</h2><p class="group-desc">自系統完整運作起連續累計，不依週或月切分。</p></div></div>
+    <section class="panel"><div class="kpis stat-kpis" id="statsKpis"></div></section>
+  </div>
+  <div class="group">
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發購電量趨勢</h2><p class="group-desc">每天的尖峰與 12:00 發購電量（台電公布的太陽能小計）。</p></div></div>
+    <section class="panel">
+      <figure class="chart-card">
+        <figcaption>每日尖峰與 12:00 發購電量</figcaption>
+        <div class="legend" id="trendLegend"></div>
+        <div class="chart" id="trendChart"></div>
+      </figure>
+    </section>
+  </div>
+  <div class="group">
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較</h2><p class="group-desc">現階段以週比較；月份需達到代表性門檻才適合互相比較。</p></div></div>
+    <section class="panel" aria-labelledby="h-week">
+      <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週，最新的週在最上方</p></div>
+      <div class="table-scroll"><table class="units stat-table" id="weekTable"></table></div>
+    </section>
+    <section class="panel" aria-labelledby="h-month">
+      <div class="panel-head"><h2 id="h-month">月彙總</h2><p class="hint">代表性依 3/5 規則判定</p></div>
+      <div class="table-scroll"><table class="units stat-table" id="monthTable"></table></div>
+    </section>
+  </div>
+  <div class="group">
+    <div class="group-head"><span class="group-no">4</span><div><h2 class="group-title">統計說明</h2></div></div>
+    <section class="panel">
+      <ol class="notes">
+        <li><b>收集完整度</b>：每天 06:00～18:00 每 10 分鐘一筆，應有 73 筆；完整度＝實際筆數 ÷ 應有筆數。</li>
+        <li><b>資料一致性</b>：各機組加總與台電小計相差在 ±0.05 MW 內即為一致，代表收集沒有遺漏，不代表台電數值本身的準確度。</li>
+        <li><b>尖峰與 12:00 發購電量</b>：台電公布的太陽能小計（MW），為瞬間值，不是發電度數；平均值為本網站依每日數值計算的統計值。</li>
+        <li><b>代表性（3/5 規則）</b>：一個月內連續缺測超過 3 天，或總缺測超過 5 天，該月數字僅供參考，不宜做月對月比較（參考 WMO 月平均計算原則）。</li>
+        <li><b>統計範圍</b>：自 2026/10/13 起（10/09～10/12 為系統建置期），只計已結束的日期；資料來自雲端收集，與電腦端紀錄可能略有差異。</li>
+      </ol>
+    </section>
+  </div>
+</main>
 </div>
 
 <div class="tip" id="tip" role="tooltip" hidden></div>
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261019"></script>
-<script src="app.js?v=20261102d"></script>
+<script src="config.js?v=20261105"></script>
+<script src="app.js?v=20261105"></script>
 <script>
-// 主題分頁切換：網址 #intro／#today 可直接開啟指定分頁
+// 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {
-  var ids = ["intro", "today"];
+  var ids = ["intro", "today", "stats"];
   function show(id) {
     if (ids.indexOf(id) < 0) id = "intro";
     ids.forEach(function (k) {
       document.getElementById(k).classList.toggle("off", k !== id);
       document.getElementById("tab-" + k).setAttribute("aria-selected", k === id ? "true" : "false");
     });
-    if (id === "today") setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 30); // 讓圖表依可見寬度重畫
+    if (id === "today" || id === "stats") setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 30); // 讓圖表依可見寬度重畫
   }
   ids.forEach(function (k) {
     document.getElementById("tab-" + k).addEventListener("click", function () {

@@ -135,3 +135,14 @@ dl.terms dd { margin: 0; color: var(--ink2); }
 .goal-bar { height: 14px; background: var(--grid); border-radius: 7px; overflow: hidden; }
 .goal-bar i { display: block; height: 100%; background: var(--accent); border-radius: 7px; }
 .goal-table { max-width: 560px; }
+
+/* ───── 第三頁：收集紀錄與統計（2026-11-05） ───── */
+.stat-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpi-note { font-size: 14.375px; color: var(--muted); margin-top: 2px; }
+.table-scroll { overflow-x: auto; }
+.stat-table td:first-child, .stat-table th { white-space: nowrap; }
+.stat-table td .sub-cell { font-size: 13.75px; color: var(--muted); }
+.units .pill.warn { background: var(--band); color: var(--ink2); }
+.units .pill.ok { background: rgba(21,128,61,.12); color: var(--ok); }
+.units .pill.bad { background: var(--warn-bg); color: var(--warn); }
+@media (max-width: 900px) { .stat-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
