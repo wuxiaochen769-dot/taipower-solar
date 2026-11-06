@@ -156,6 +156,3 @@ details.method[open] > summary::before { transform: rotate(90deg); }
 details.method > :not(summary) { margin: 0 14px 14px; }
 .method-table td:first-child { white-space: nowrap; font-weight: 600; }
 .method-table td { vertical-align: top; }
-
-/* 發電量數字較長（2026-11-06） */
-.bars li { grid-template-columns: 8.5em 1fr 7.8em; }

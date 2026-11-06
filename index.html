@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>太陽光電資訊儀表板</title>
-<meta name="description" content="台電太陽能（台電自有＋購電）全台即時發購電量、各機組淨發電量、台電自有發電站分布與資料一致性">
+<meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261106">
+<link rel="stylesheet" href="style.css?v=20261106c">
 </head>
 <body>
 <header class="top">
@@ -17,7 +17,7 @@
     <div class="banner" id="banner" hidden></div>
     <nav class="tabs" role="tablist" aria-label="網站主題">
       <button type="button" role="tab" id="tab-intro" aria-selected="true" aria-controls="intro">① 認識太陽光電</button>
-      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today">② 今日發購電量與案場資訊</button>
+      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today">② 今日發電功率與案場資訊</button>
       <button type="button" role="tab" id="tab-stats" aria-selected="false" aria-controls="stats">③ 收集紀錄與統計</button>
     </nav>
   </div>
@@ -28,8 +28,8 @@
 <main class="wrap tab-panel" id="intro" role="tabpanel" aria-labelledby="tab-intro">
   <section class="panel">
     <p class="lead"><b>本網站以台電與政府公開資料，介紹太陽光電並呈現全台即時發電情形，提供一般民眾與業者參考。</b></p>
-    <p class="hint">第一次來嗎？先看看太陽光電怎麼發電、哪些因素會影響發電，再到「今日發購電量與案場資訊」看今天的資料。</p>
-    <button class="go" type="button" data-go="today">前往今日發購電量與案場資訊 →</button>
+    <p class="hint">第一次來嗎？先看看太陽光電怎麼發電、哪些因素會影響發電，再到「今日發電功率與案場資訊」看今天的資料。</p>
+    <button class="go" type="button" data-go="today">前往今日發電功率與案場資訊 →</button>
   </section>
   <div class="group">
     <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">太陽光電入門</h2><p class="group-desc">認識太陽光電怎麼發電，以及哪些因素會影響發電。</p></div></div>
@@ -74,12 +74,13 @@
   </section>
   </div>
   <div class="group">
-    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">看懂儀表板</h2><p class="group-desc">前往「今日發購電量與案場資訊」之前，先了解名詞與資料說明。</p></div></div>
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">看懂儀表板</h2><p class="group-desc">前往「今日發電功率與案場資訊」之前，先了解名詞與資料說明。</p></div></div>
   <section class="panel" aria-labelledby="h-terms">
     <div class="panel-head"><h2 id="h-terms">看懂儀表板的名詞</h2></div>
     <dl class="terms">
-      <dt>裝置容量</dt><dd>案場設備的發電規模（MW），代表最多能發多少電。</dd>
-      <dt>淨發電量</dt><dd>台電公布各機組在某個時刻的發電量（MW），每 10 分鐘更新一次。</dd>
+      <dt>裝置容量</dt><dd>案場設備的發電規模（MW），代表最大的發電功率。</dd>
+      <dt>功率與發電量</dt><dd><b>發電功率（MW）</b>是某一瞬間的發電能力；<b>發電量（MWh）</b>是一段時間累積的電量，1 MWh＝1,000 度。本網站顯示的數值為發電功率。</dd>
+      <dt>淨發電量</dt><dd>台電資料的欄位名稱，實際上是各機組在某個時刻送入電網的<b>發電功率</b>（MW），每 10 分鐘更新一次；「淨」代表已扣除電站自用電。</dd>
       <dt>發購電量</dt><dd>台電自有案場的發電量，加上台電向民間案場購買的電量。</dd>
       <dt>試運轉案場</dt><dd>取得電業執照前的測試階段，暫不計入裝置容量（台電註 10）。</dd>
     </dl>
@@ -95,12 +96,12 @@
   </div>
 </main>
 
-<!-- 主題二：今日發購電量與案場資訊（原有內容不變） -->
+<!-- 主題二：今日發電功率與案場資訊 -->
 <main class="wrap tab-panel off" id="today" role="tabpanel" aria-labelledby="tab-today">
   <!-- ① 上方：全台地圖＋即時發電 -->
   <section class="panel" aria-labelledby="h-map">
     <div class="panel-head">
-      <h2 id="h-map">台電自有發電站位置與今日累計發購電量（估算）</h2>
+      <h2 id="h-map">台電自有發電站位置與全台即時發電功率</h2>
       <p class="hint">地圖上為台電自有太陽光電發電站；購電案場位置未公開，列在右側</p>
     </div>
     <div class="map-grid">
@@ -117,15 +118,15 @@
     </div>
   </section>
 
-  <!-- ② 下方：台電自有與購電＋今日發購電量變化＋資料一致性 -->
+  <!-- ② 下方：台電自有與購電＋今日發電功率變化＋資料一致性 -->
   <section class="panel" aria-labelledby="h-day">
     <div class="panel-head">
-      <h2 id="h-day">今日發購電量變化與資料一致性</h2>
-      <p class="hint">06:00–18:00 每 10 分鐘一筆，依台電公布的功率以梯形法累計；台電資料約延遲 10～15 分鐘</p>
+      <h2 id="h-day">今日發電功率變化與資料一致性</h2>
+      <p class="hint">06:00–18:00 每 10 分鐘一筆，台電公布的發電功率（MW）；台電資料約延遲 10～15 分鐘</p>
     </div>
     <div class="day-grid">
       <figure class="chart-card wide">
-        <figcaption>① 今日累計發購電量組成（估算，堆疊面積圖；虛線為台電小計累計）</figcaption>
+        <figcaption>① 今日發電功率組成（MW，台電自有＋購電；堆疊面積圖，虛線為台電小計）</figcaption>
         <div class="legend" id="areaLegend"></div>
         <div class="chart" id="areaChart"></div>
       </figure>
@@ -134,7 +135,7 @@
         <div class="big" id="consistBig">–</div>
         <p class="small" id="consistText"></p>
         <div class="chart" id="diffChart"></div>
-        <p class="small muted">以台電公布的功率逐時段比對：長條＝各機組加總 − 台電小計（MW）；灰色帶 ±0.05 MW 為小計四捨五入範圍</p>
+        <p class="small muted">長條＝各機組加總 − 台電小計（MW）；灰色帶 ±0.05 MW 為小計四捨五入範圍</p>
       </figure>
     </div>
 
@@ -148,19 +149,20 @@
         <table class="units" id="purTable"></table>
       </div>
     </div>
-    <p class="note">今日累計發電量（MWh）＝台電每 10 分鐘公布的淨發電量（MW，瞬間功率），以梯形法累計 06:00 至最新時段的估算值，非台電計量值。</p>
+    <p class="note">發電功率為台電資料欄位「淨發電量（MW）」，即該時刻送入電網的瞬間功率；發電比率＝發電功率 ÷ 裝置容量，為該時刻的瞬間比例，不同於以一段期間計算的容量因數。</p>
   </section>
 
   <footer class="foot">
     <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺<a href="https://data.gov.tw/dataset/17141" target="_blank" rel="noopener">「台灣電力公司再生能源各場址資料」</a>（2024 年版，裝置容量可能已變動），經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
-    <p>發電量為依台電公布功率以梯形法估算之值（相鄰兩筆取平均 × 10 分鐘），非台電計量值。裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
+    <p>彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</p>
+    <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
   </footer>
 </main>
 
 <!-- 主題三：收集紀錄與統計（2026-11-05 新增） -->
 <main class="wrap tab-panel off" id="stats" role="tabpanel" aria-labelledby="tab-stats">
   <section class="panel">
-    <p class="lead"><b>本頁整理每日收集的台電資料：系統是否穩定收集，以及每日估算發電量的變化。</b></p>
+    <p class="lead"><b>本頁整理每日收集的台電資料：系統是否穩定收集，以及每日尖峰的變化。</b></p>
     <p class="hint" id="statsRange">載入中…</p>
     <p class="hint" id="statsNote"></p>
   </section>
@@ -169,10 +171,10 @@
     <section class="panel"><div class="kpis stat-kpis" id="statsKpis"></div></section>
   </div>
   <div class="group">
-    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發購電量趨勢</h2><p class="group-desc">每天的估算發電量（依台電公布的太陽能小計功率，以梯形法計算）。</p></div></div>
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發電功率趨勢</h2><p class="group-desc">每天的尖峰與 12:00 發電功率（台電公布的太陽能小計）。</p></div></div>
     <section class="panel">
       <figure class="chart-card">
-        <figcaption>每日估算發電量</figcaption>
+        <figcaption>每日尖峰與 12:00 發電功率</figcaption>
         <div class="legend" id="trendLegend"></div>
         <div class="chart" id="trendChart"></div>
       </figure>
@@ -202,8 +204,8 @@
             <tr><td>各機組加總</td><td>Σ 各機組淨發電量</td><td>不含台電公布的「小計」列</td></tr>
             <tr><td>一致判定</td><td>｜各機組加總 − 台電小計｜≤ 0.05 MW</td><td>台電小計只到小數第 1 位，四捨五入誤差最大 ±0.05</td></tr>
             <tr><td>資料一致性</td><td>一致筆數 ÷ 實際筆數</td><td>代表收集沒有遺漏，不代表台電數值本身的準確度</td></tr>
-            <tr><td>每日估算發電量</td><td>Σ（前一筆功率 ＋ 後一筆功率）÷ 2 × 間隔小時</td><td>梯形法；功率為台電公布的太陽能小計（MW），06:00～18:00 累計，單位 MWh（1 MWh＝1,000 度）</td></tr>
-            <tr><td>週／月累計、日平均</td><td>每日估算發電量的加總、平均</td><td>週：自 10/13 起每 7 天；月：依日曆月份，只含有資料的日期</td></tr>
+            <tr><td>每日尖峰發電功率</td><td>當日 06:00～18:00 台電小計的最大值</td><td>10 分鐘取樣的瞬間發電功率（MW），不是發電量（MWh）</td></tr>
+            <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天；月：依日曆月份</td></tr>
             <tr><td>月份代表性</td><td>缺測 ＞ 5 天，或連續缺測 ＞ 3 天 → 僅供參考</td><td>參考 WMO 月平均計算原則（3/5 規則）</td></tr>
           </tbody>
         </table>
@@ -216,7 +218,6 @@
             <tr><td>內部一致性</td><td>每個時段比對各機組加總與台電小計</td><td>1,678 筆中 1,677 筆一致；唯一不一致為 10/24 08:50，差值 0.051 MW</td></tr>
             <tr><td>雙重收集比對</td><td>雲端與電腦端各自獨立收集，逐日比對筆數、尖峰與 12:00 數值</td><td>10/14～11/04 共 22 天完全相同；10/13 雲端少 1 筆</td></tr>
             <tr><td>異常監測</td><td>電腦端自動檢查連線失敗、同步失敗、資料缺漏等 6 類收集異常</td><td>共 15 次，全部恢復；當日最終資料完整</td></tr>
-            <tr><td>發電量計算對照</td><td>以相同資料，比對本網站的梯形法與電腦端 Excel〈當日統計〉的估算值</td><td>抽查 8 天結果完全相同（例：10/20 皆為 60,368.6 MWh）；10/13 雲端少 1 筆，該日網站數值會略低</td></tr>
             <tr><td>官方數值對照</td><td>與台電網站同時段公布的數值核對</td><td>首次運行（10/08）結果與台電網站一致</td></tr>
           </tbody>
         </table>
@@ -224,17 +225,18 @@
       <details class="method">
         <summary>統計範圍與限制</summary>
         <ol class="notes">
-          <li><b>主要不確定性</b>：每日發電量約 84%～88% 來自台電依取樣比例估算的「其它購電太陽能」（台電註 7），整體準確度主要取決於台電的估算；本網站計算方法的誤差經比對不到 0.3%（以辛普森法重算、以 20 分鐘取樣重算）。</li>
+          <li><b>個別機組</b>：彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</li>
+          <li><b>主要不確定性</b>：台電小計中約 84%～88% 為台電依取樣比例估算的「其它購電太陽能」（台電註 7），整體準確度主要取決於台電的估算。</li>
           <li>統計自 2026/10/13 起（10/09～10/12 為系統建置期），只計已結束的日期，當天資料於隔天加入。</li>
           <li>本頁資料來自雲端收集，與電腦端紀錄可能略有差異（見「雙重收集比對」）。</li>
           <li>台電資料約延遲 10～15 分鐘；「其它購電太陽能」為台電依取樣比例估算的整併項目（台電註 7）。</li>
-          <li>發電量為依 10 分鐘功率資料以梯形法估算，兩筆之間的起伏無法反映，且含「其它購電太陽能」估算整併值，非台電計量值；平均值、完整度、一致性為本網站依台電公布數值計算的統計值。</li>
+          <li>平均值、完整度、一致性為本網站依台電公布的發電功率計算的統計值。</li>
         </ol>
       </details>
     </section>
   </div>
   <footer class="foot">
-    <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版），由本系統以 Google Apps Script 每 5 分鐘收集並存入雲端，再依上述公式計算每日估算發電量與統計。</p>
+    <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版），由本系統以 Google Apps Script 每 5 分鐘收集並存入雲端，再依上述公式計算每日統計。</p>
     <p>月份代表性判定參考 <a href="https://climate.usu.edu/help/normals.php" target="_blank" rel="noopener">WMO 月平均計算原則（3/5 規則）</a>。程式由 Claude 協助撰寫；架構設計、規則訂定與驗證由實習生負責。</p>
   </footer>
 </main>
@@ -244,8 +246,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261106"></script>
-<script src="app.js?v=20261106"></script>
+<script src="config.js?v=20261106c"></script>
+<script src="app.js?v=20261106c"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

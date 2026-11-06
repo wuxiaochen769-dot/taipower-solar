@@ -25,13 +25,6 @@
   const hideTip = () => { tip.hidden = true; };
   const shortStatus = (s) => (s ? s.replace("新增設備測試運轉", "測試運轉") : "");
   const row = (k, v) => `<div class="row"><span>${k}</span><span>${v}</span></div>`;
-  // 梯形法：相鄰兩筆功率（MW）取平均 × 間隔小時 → 電量（MWh）
-  const toMinT = (t) => +t.slice(0, 2) * 60 + +t.slice(3, 5);
-  function cumulative(series, key) {
-    let e = 0; const out = [];
-    series.forEach((s, i) => { if (i) e += ((series[i - 1][key] || 0) + (s[key] || 0)) / 2 * (toMinT(s.t) - toMinT(series[i - 1].t)) / 60; out.push(e); });
-    return out;
-  }
 
   let sites = null, topo = null;
 
@@ -70,11 +63,10 @@
   function renderAll(d) {
     const own = d.units.filter((u) => u.category === "台電自有");
     const pur = d.units.filter((u) => u.category === "購電");
-    const ser = d.series || [];
-    const last = (arr) => (arr.length ? arr[arr.length - 1] : null);
-    const ownE = last(cumulative(ser, "own")), purE = (last(cumulative(ser, "purEst")) || 0) + (last(cumulative(ser, "purSite")) || 0);
+    const sum = (a) => a.reduce((s, u) => s + (u.net || 0), 0);
+    const ownMW = sum(own), purMW = sum(pur);
     renderHeader(d);
-    renderKpis(d, ownE, ser.length ? purE : null);
+    renderKpis(d, ownMW, purMW);
     renderMap(d);
     renderPurchased(pur);
     renderArea(d.series);
@@ -97,17 +89,18 @@
     $("banner").textContent = msgs.join(" ");
   }
 
-  function renderKpis(d, ownE, purE) {
+  function renderKpis(d, ownMW, purMW) {
     const c = d.consistency || {};
     const pct = c.n ? (c.match / c.n) * 100 : null;
     const k = (lbl, val, unit, sw) => `<div class="kpi"><div class="lbl">${sw ? `<span class="sw" style="background:${sw}"></span>` : ""}${lbl}</div><div class="val">${val}<small>${unit}</small></div></div>`;
-    const tot = d.energyTotal != null ? d.energyTotal : (d.series && d.series.length ? cumulative(d.series, "sub").pop() : null);
+    const ser = d.series || [];
+    const peak = ser.reduce((m, s) => (s.sub > (m ? m.sub : -1) ? s : m), null);
     $("kpis").innerHTML =
-      k(`今日累計發購電量（估算，06:00～${d.time || "–"}）`, fmt(tot), "MWh").replace('class="kpi"', 'class="kpi wide"') +
+      k("即時發電功率（台電自有＋購電）", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
       k("資料一致性（今日）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") +
-      k("已收集時段", c.n != null ? c.n : "–", " / 73") +
-      k("台電自有（估算）", fmt(ownE), "MWh", "var(--s-own)") +
-      k("購電（估算）", fmt(purE), "MWh", "var(--s-est)");
+      k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW") +
+      k("台電自有", fmt(ownMW), "MW", "var(--s-own)") +
+      k("購電", fmt(purMW), "MW", "var(--s-est)");
   }
 
   // ───── 地圖 ─────
@@ -139,7 +132,7 @@
       projs.push({ proj: p, test: ins.test });
     });
 
-    const unitNet = Object.fromEntries(d.units.map((u) => [u.name, u.energy]));
+    const unitNet = Object.fromEntries(d.units.map((u) => [u.name, u.net]));
     const otherOwn = unitNet["其它台電自有"];
     const r = d3.scaleSqrt().domain([0, d3.max(sites.stations, (s) => s.capacityKW)]).range([3, 17]);
     const pos = (s) => {
@@ -154,42 +147,39 @@
       .style("fill", "var(--s-own)").style("fill-opacity", (s) => (LIVE_UNITS.includes(s.unit) ? 0.95 : 0.7))
       .on("mousemove", (evt, s) => {
         const live = LIVE_UNITS.includes(s.unit)
-          ? row("今日累計發電量（估算）", fmt(unitNet[s.unit]) + " MWh")
-          : row("今日累計發電量", "含在「其它台電自有」") + row("其它台電自有合計（估算）", fmt(otherOwn) + " MWh");
+          ? row("發電功率", fmt(unitNet[s.unit]) + " MW")
+          : row("發電功率", "含在「其它台電自有」") + row("其它台電自有合計", fmt(otherOwn) + " MW");
         showTip(evt, `<b>${s.name}</b>${row("位置", s.county + s.town + (s.village || ""))}${row("裝置容量（2024 場址資料）", fmt(s.capacityKW / 1000, 2) + " MW")}${s.trialKW ? row("其中試運轉", fmt(s.trialKW / 1000, 2) + " MW") : ""}${live}${row("場址數", s.sites)}${row("定位精度", s.precision)}`);
       })
       .on("mouseleave", hideTip);
     g.selectAll("text").data(data.filter((s) => LIVE_UNITS.includes(s.unit))).join("text")
       .attr("class", "dot-lbl").attr("x", (s) => pos(s)[0] + r(s.capacityKW) + 5).attr("y", (s) => pos(s)[1] + 4)
-      .text((s) => `${s.unit} ${fmt(unitNet[s.unit])} MWh`);
+      .text((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`);
 
     $("mapLegend").innerHTML =
       `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝2024 場址資料的裝置容量）</span>` +
-      `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別今日累計發電量</span>` +
+      `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別發電功率</span>` +
       `<span>位置為村里或鄉鎮中心點（概略）</span>`;
   }
 
   function renderPurchased(pur) {
-    const list = pur.filter((u) => u.name !== "其它購電太陽能").sort((a, b) => (b.energy || 0) - (a.energy || 0));
-    const max = d3.max(list, (u) => u.energy || 0) || 1;
+    const list = pur.filter((u) => u.name !== "其它購電太陽能").sort((a, b) => (b.net || 0) - (a.net || 0));
+    const max = d3.max(list, (u) => u.net || 0) || 1;
     const est = pur.find((u) => u.name === "其它購電太陽能");
     $("purchasedBars").innerHTML =
-      (est ? `<li><span>其它購電太陽能</span><span class="tag">估算整併，不畫長條</span><span class="num">${fmt(est.energy)} MWh</span></li>` : "") +
+      (est ? `<li><span>其它購電太陽能</span><span class="tag">估算整併，不畫長條</span><span class="num">${fmt(est.net)} MW</span></li>` : "") +
       list.map((u) => {
         const tag = shortStatus(u.status) || (u.capacity == null ? "試運轉" : "");
-        return `<li title="${u.name}${tag ? "（" + tag + "）" : ""}"><span>${u.name}${tag ? ` <span class="tag">${tag}</span>` : ""}</span><span class="track"><span class="fill" style="width:${((u.energy || 0) / max) * 100}%;display:block"></span></span><span class="num">${fmt(u.energy)} MWh</span></li>`;
+        return `<li title="${u.name}${tag ? "（" + tag + "）" : ""}"><span>${u.name}${tag ? ` <span class="tag">${tag}</span>` : ""}</span><span class="track"><span class="fill" style="width:${((u.net || 0) / max) * 100}%;display:block"></span></span><span class="num">${fmt(u.net)} MW</span></li>`;
       }).join("");
   }
 
   // ───── 堆疊面積圖 ─────
-  function renderArea(series) { // series 會轉成累計估算發電量
+  function renderArea(series) {
     const el = d3.select("#areaChart"); el.selectAll("*").remove();
-    $("areaLegend").innerHTML = GROUPS.slice().reverse().map((g) => `<span><i style="background:${g.color}"></i>${g.name}</span>`).join("") + `<span><i class="dash"></i>台電小計累計</span>`;
+    $("areaLegend").innerHTML = GROUPS.slice().reverse().map((g) => `<span><i style="background:${g.color}"></i>${g.name}</span>`).join("") + `<span><i class="dash"></i>台電小計</span>`;
     if (!series || !series.length) { el.append("p").attr("class", "small muted").text("今天尚無資料"); return; }
-    // 轉成累計估算發電量（MWh）
-    const cum = {}; ["own", "purEst", "purSite", "sub"].forEach((k) => { cum[k] = cumulative(series, k); });
-    series = series.map((s, i) => ({ t: s.t, own: cum.own[i], purEst: cum.purEst[i], purSite: cum.purSite[i], sub: cum.sub[i], sum: cum.own[i] + cum.purEst[i] + cum.purSite[i] }));
-    const W = el.node().clientWidth || 700, H = Math.max(240, Math.round(W * 0.42)), m = { t: 24, r: 22, b: 28, l: 72 };
+    const W = el.node().clientWidth || 700, H = Math.max(240, Math.round(W * 0.42)), m = { t: 24, r: 22, b: 28, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const toMin = (t) => +t.slice(0, 2) * 60 + +t.slice(3);
     const x = d3.scaleLinear().domain([360, 1080]).range([m.l, W - m.r]);
@@ -198,7 +188,7 @@
     svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
       .call(d3.axisBottom(x).tickValues(d3.range(360, 1081, 120)).tickFormat((v) => String(v / 60).padStart(2, "0") + ":00"));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
-    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MWh");
+    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
     const stack = d3.stack().keys(GROUPS.map((g) => g.key))(series);
     const area = d3.area().x((p) => x(toMin(p.data.t))).y0((p) => y(p[0])).y1((p) => y(p[1])).curve(d3.curveMonotoneX);
     svg.append("g").selectAll("path").data(stack).join("path").attr("d", area).style("fill", (s, i) => GROUPS[i].color).style("stroke", "var(--card)").style("stroke-width", 1);
@@ -211,7 +201,7 @@
       .on("mousemove", (evt) => {
         const [mx] = d3.pointer(evt), s = series[bis(series, x.invert(mx))];
         cross.attr("x1", x(toMin(s.t))).attr("x2", x(toMin(s.t))).style("opacity", 1);
-        showTip(evt, `<b>06:00～${s.t} 累計（估算）</b>${row("台電小計", fmt(s.sub) + " MWh")}${GROUPS.slice().reverse().map((g) => row(g.name.replace("購電：", ""), fmt(s[g.key]) + " MWh")).join("")}`);
+        showTip(evt, `<b>${s.t} 發電功率</b>${row("台電小計", fmt(s.sub) + " MW")}${GROUPS.slice().reverse().map((g) => row(g.name.replace("購電：", ""), fmt(s[g.key]) + " MW")).join("")}`);
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
   }
@@ -244,15 +234,16 @@
 
   // ───── 機組表 ─────
   function renderTable(id, units, isPur) {
-    const rows = units.slice().sort((a, b) => (b.energy || 0) - (a.energy || 0));
-    const head = `<tr><th>機組</th><th class="n">今日累計發電量 (MWh)</th><th class="n">裝置容量 (MW)</th><th>狀態</th></tr>`;
+    const rows = units.slice().sort((a, b) => (b.net || 0) - (a.net || 0));
+    const head = `<tr><th>機組</th><th class="n">發電功率 (MW)</th><th class="n">裝置容量 (MW)</th><th class="n">發電比率</th><th>狀態</th></tr>`;
     const body = rows.map((u) => {
       const st = u.status ? `<span class="pill">${shortStatus(u.status)}</span>` : u.capacity == null ? `<span class="pill">試運轉・暫不計入容量</span>` : u.name.startsWith("其它") ? `<span class="pill">整併項目</span>` : "";
-      return `<tr><td>${u.name}</td><td class="n">${fmt(u.energy)}</td><td class="n">${u.capacity == null ? "–" : fmt(u.capacity)}</td><td>${st}</td></tr>`;
+      return `<tr><td>${u.name}</td><td class="n">${fmt(u.net, u.net >= 100 ? 1 : 2)}</td><td class="n">${u.capacity == null ? "–" : fmt(u.capacity)}</td><td class="n">${u.cf == null ? "–" : fmt(u.cf) + "%"}</td><td>${st}</td></tr>`;
     }).join("");
-    const total = rows.reduce((s, u) => s + (u.energy || 0), 0);
-    $(id).innerHTML = `<thead>${head}</thead><tbody>${body}</tbody><tfoot><tr><td><b>合計</b></td><td class="n"><b>${fmt(total)}</b></td><td colspan="2"></td></tr></tfoot>`;
+    const total = rows.reduce((s, u) => s + (u.net || 0), 0);
+    $(id).innerHTML = `<thead>${head}</thead><tbody>${body}</tbody><tfoot><tr><td><b>合計</b></td><td class="n"><b>${fmt(total)}</b></td><td colspan="3"></td></tr></tfoot>`;
   }
+
 
   // ───── 第三分頁：收集紀錄與統計（2026-11-05 新增）─────
   // 資料：Apps Script ?view=stats（雲端收集的每日統計）；未設定 LIVE_URL 時使用 sample-stats.json
@@ -289,9 +280,6 @@
       full: days.filter((d) => d.n >= SLOTS).length,
       avgPeak: d3.mean(days, (d) => d.peak), avgNoon: d3.mean(days.filter((d) => d.noon != null), (d) => d.noon),
       peakDay, lowDay,
-      eTot: d3.sum(days, (d) => d.E || 0), eAvg: d3.mean(days, (d) => d.E),
-      eMax: days.reduce((m, d) => (d.E != null && (!m || d.E > m.E) ? d : m), null),
-      eMin: days.reduce((m, d) => (d.E != null && (!m || d.E < m.E) ? d : m), null),
     };
   }
 
@@ -307,7 +295,7 @@
       k("收集天數", s.days, "天", `${md(start)}～${md(lastDay)}`) +
       k("收集完整度", pctTxt(s.comp).replace("%", ""), "%", `${s.n.toLocaleString()} / ${s.exp.toLocaleString()} 筆`) +
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
-      k("累計估算發電量", fmt(s.eTot, 0), "MWh", `約 ${fmt(s.eTot / 10, 0)} 萬度`);
+      k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
     renderTrend(days);
     renderWeeks(days, start, lastDay);
     renderMonths(days, start, lastDay);
@@ -315,30 +303,37 @@
 
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
-    $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日估算發電量</span>`;
-    const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 72 };
+    $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>`;
+    const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
-    const x = d3.scaleBand().domain(days.map((d) => d.d)).range([m.l, W - m.r]).padding(0.25);
-    const y = d3.scaleLinear().domain([0, (d3.max(days, (d) => d.E) || 1) * 1.08]).nice().range([H - m.b, m.t]);
+    const x = d3.scaleTime().domain([toDate(days[0].d), toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
+    const y = d3.scaleLinear().domain([0, (d3.max(days, (d) => d.peak) || 1) * 1.08]).nice().range([H - m.b, m.t]);
     svg.append("g").attr("class", "gridline").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickSize(-(W - m.l - m.r)).tickFormat(""));
-    const step = Math.max(1, Math.ceil(days.length / Math.floor(W / 70)));
-    const ticks = days.filter((d, i) => i % step === 0 || i === days.length - 1).map((d) => d.d);
-    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickValues(ticks).tickFormat(md));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
+      .call(d3.axisBottom(x).tickValues(days.filter((d, i) => i % Math.max(1, Math.ceil(days.length / Math.floor(W / 70))) === 0).map((d) => toDate(d.d))).tickFormat((d) => md(ymd(d))));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
-    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MWh");
-    svg.append("g").selectAll("rect").data(days).join("rect")
-      .attr("x", (d) => x(d.d)).attr("width", x.bandwidth()).attr("y", (d) => y(d.E || 0)).attr("height", (d) => y(0) - y(d.E || 0))
-      .attr("rx", 2).style("fill", "var(--accent)")
-      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("估算發電量", fmt(d.E) + " MWh")}${row("約", fmt(d.E / 10) + " 萬度")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}`))
-      .on("mouseleave", hideTip);
+    svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
+    const line = (key) => d3.line().defined((d) => d[key] != null).x((d) => x(toDate(d.d))).y((d) => y(d[key]));
+    svg.append("path").datum(days).attr("d", line("noon")).style("fill", "none").style("stroke", "var(--s-site)").style("stroke-width", 2);
+    svg.append("path").datum(days).attr("d", line("peak")).style("fill", "none").style("stroke", "var(--accent)").style("stroke-width", 2.5);
+    svg.append("g").selectAll("circle").data(days).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 3.5).style("fill", "var(--accent)");
+    const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).style("stroke", "var(--muted)").style("opacity", 0);
+    const bis = d3.bisector((d) => toDate(d.d)).center;
+    svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", H - m.t - m.b).style("fill", "transparent")
+      .on("mousemove", (evt) => {
+        const [mx] = d3.pointer(evt), d = days[bis(days, x.invert(mx))];
+        cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
+        showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}`);
+      })
+      .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
   }
 
   function statRow(label, sub, ds, extra) {
     const s = summarize(ds);
-    return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.eTot)}</td><td class="n">${fmt(s.eAvg)}</td>` +
-      `<td class="n">${s.eMax ? fmt(s.eMax.E) + `<div class="sub-cell">${md(s.eMax.d)}</div>` : "–"}</td>` +
-      `<td class="n">${s.eMin ? fmt(s.eMin.E) + `<div class="sub-cell">${md(s.eMin.d)}</div>` : "–"}</td>` +
-      `<td class="n">${pctTxt(s.comp)}</td></tr>`;
+    return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.avgPeak)}</td>` +
+      `<td class="n">${s.peakDay ? fmt(s.peakDay.peak) + `<div class="sub-cell">${md(s.peakDay.d)}</div>` : "–"}</td>` +
+      `<td class="n">${s.lowDay ? fmt(s.lowDay.peak) + `<div class="sub-cell">${md(s.lowDay.d)}</div>` : "–"}</td>` +
+      `<td class="n">${fmt(s.avgNoon)}</td><td class="n">${pctTxt(s.comp)}</td></tr>`;
   }
 
   function renderWeeks(days, start, lastDay) {
@@ -355,7 +350,7 @@
       }
       ws = new Date(ws.getTime() + 7 * DAY);
     }
-    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">天數</th><th>狀態</th><th class="n">累計發電量 (MWh)</th><th class="n">日平均 (MWh)</th><th class="n">最高日 (MWh)</th><th class="n">最低日 (MWh)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">天數</th><th>狀態</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
   function renderMonths(days, start, lastDay) {
@@ -373,7 +368,7 @@
       return statRow(`${yy} 年 ${mm} 月`, ended ? "已結束" : "進行中", ds,
         `<td class="n">${ds.length} / ${dim}</td><td class="n">${miss}</td><td class="n">${longest}</td><td>${rep}</td>`);
     });
-    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">有資料天數</th><th class="n">缺測天數</th><th class="n">最長連續缺測</th><th>代表性</th><th class="n">累計發電量 (MWh)</th><th class="n">日平均 (MWh)</th><th class="n">最高日 (MWh)</th><th class="n">最低日 (MWh)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">有資料天數</th><th class="n">缺測天數</th><th class="n">最長連續缺測</th><th>代表性</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
   init().catch((e) => { $("dataTime").textContent = "載入失敗：" + e.message; });
