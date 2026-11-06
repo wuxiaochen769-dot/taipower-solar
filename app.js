@@ -328,8 +328,10 @@
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
   }
 
-  function statRow(label, sub, ds, extra) {
+  function statRow(label, sub, ds, extra, expDays) {
     const s = summarize(ds);
+    // expDays：統計期間內應有的天數（月彙總用，整天沒收到也會反映在完整度）
+    if (expDays) s.comp = s.n / (expDays * SLOTS);
     return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.avgPeak)}</td>` +
       `<td class="n">${s.peakDay ? fmt(s.peakDay.peak) + `<div class="sub-cell">${md(s.peakDay.d)}</div>` : "–"}</td>` +
       `<td class="n">${s.lowDay ? fmt(s.lowDay.peak) + `<div class="sub-cell">${md(s.lowDay.d)}</div>` : "–"}</td>` +
@@ -354,22 +356,21 @@
   }
 
   function renderMonths(days, start, lastDay) {
+    // 依日曆月份彙總；統計期間＝該月第一天（或統計起始日）至該月最後一天（或最新已結束日期）
     const keys = [...new Set(days.map((d) => d.d.slice(0, 7)))];
     const rows = keys.map((mk) => {
       const ds = days.filter((d) => d.d.startsWith(mk));
       const [yy, mm] = mk.split("-").map(Number);
       const dim = new Date(Date.UTC(yy, mm, 0)).getUTCDate(), mEnd = `${mk}-${String(dim).padStart(2, "0")}`;
       const ended = mEnd <= lastDay;
-      const upto = ended ? dim : Number(lastDay.slice(8, 10));
-      const have = new Set(ds.map((d) => d.d.slice(8, 10)).map(Number));
-      let miss = 0, run = 0, longest = 0;
-      for (let dd = 1; dd <= upto; dd++) { if (have.has(dd)) run = 0; else { miss++; run++; longest = Math.max(longest, run); } }
-      const rep = !ended ? '<span class="pill warn">月底判定</span>' : miss > 5 || longest > 3 ? '<span class="pill bad">僅供參考</span>' : '<span class="pill ok">具代表性</span>';
-      return statRow(`${yy} 年 ${mm} 月`, ended ? "已結束" : "進行中", ds,
-        `<td class="n">${ds.length} / ${dim}</td><td class="n">${miss}</td><td class="n">${longest}</td><td>${rep}</td>`);
+      const from = start > `${mk}-01` ? start : `${mk}-01`, to = ended ? mEnd : lastDay;
+      const expDays = Math.round((toDate(to) - toDate(from)) / DAY) + 1;
+      return statRow(`${yy} 年 ${mm} 月`, `${md(from)}～${md(to)}${ended ? "" : "（進行中）"}`, ds,
+        `<td class="n">${ds.length} / ${expDays}</td>`, expDays);
     });
-    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">有資料天數</th><th class="n">缺測天數</th><th class="n">最長連續缺測</th><th>代表性</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">收集天數</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
+
 
   init().catch((e) => { $("dataTime").textContent = "載入失敗：" + e.message; });
 })();

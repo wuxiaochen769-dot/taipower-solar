@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261106c">
+<link rel="stylesheet" href="style.css?v=20261106d">
 </head>
 <body>
 <header class="top">
@@ -181,13 +181,13 @@
     </section>
   </div>
   <div class="group">
-    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較</h2><p class="group-desc">現階段以週比較；月份需達到代表性門檻才適合互相比較。</p></div></div>
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較</h2><p class="group-desc">週以 7 天為單位、月以日曆月份彙總；10 月自 10/13 起算。</p></div></div>
     <section class="panel" aria-labelledby="h-week">
       <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週，最新的週在最上方</p></div>
       <div class="table-scroll"><table class="units stat-table" id="weekTable"></table></div>
     </section>
     <section class="panel" aria-labelledby="h-month">
-      <div class="panel-head"><h2 id="h-month">月彙總</h2><p class="hint">代表性依 3/5 規則判定</p></div>
+      <div class="panel-head"><h2 id="h-month">月彙總</h2><p class="hint">收集完整度以統計期間內應有的筆數計算，最新的月份在最上方</p></div>
       <div class="table-scroll"><table class="units stat-table" id="monthTable"></table></div>
     </section>
   </div>
@@ -206,7 +206,7 @@
             <tr><td>資料一致性</td><td>一致筆數 ÷ 實際筆數</td><td>代表收集沒有遺漏，不代表台電數值本身的準確度</td></tr>
             <tr><td>每日尖峰發電功率</td><td>當日 06:00～18:00 台電小計的最大值</td><td>10 分鐘取樣的瞬間發電功率（MW），不是發電量（MWh）</td></tr>
             <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天；月：依日曆月份</td></tr>
-            <tr><td>月份代表性</td><td>缺測 ＞ 5 天，或連續缺測 ＞ 3 天 → 僅供參考</td><td>參考 WMO 月平均計算原則（3/5 規則）</td></tr>
+            <tr><td>月收集完整度</td><td>實際筆數 ÷（統計期間天數 × 73）</td><td>該月 1 日（10 月自 10/13）至月底或最新已結束日；整天未收到也會計入</td></tr>
           </tbody>
         </table>
       </details>
@@ -237,7 +237,7 @@
   </div>
   <footer class="foot">
     <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版），由本系統以 Google Apps Script 每 5 分鐘收集並存入雲端，再依上述公式計算每日統計。</p>
-    <p>月份代表性判定參考 <a href="https://climate.usu.edu/help/normals.php" target="_blank" rel="noopener">WMO 月平均計算原則（3/5 規則）</a>。程式由 Claude 協助撰寫；架構設計、規則訂定與驗證由實習生負責。</p>
+    <p>程式由 Claude 協助撰寫；架構設計、規則訂定與驗證由實習生負責。</p>
   </footer>
 </main>
 </div>
@@ -246,8 +246,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261106c"></script>
-<script src="app.js?v=20261106c"></script>
+<script src="config.js?v=20261106d"></script>
+<script src="app.js?v=20261106d"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {
