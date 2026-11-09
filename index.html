@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261106d">
+<link rel="stylesheet" href="style.css?v=20261109a">
 </head>
 <body>
 <header class="top">
@@ -16,9 +16,9 @@
     <p class="sub" id="dataTime">載入中…</p>
     <div class="banner" id="banner" hidden></div>
     <nav class="tabs" role="tablist" aria-label="網站主題">
-      <button type="button" role="tab" id="tab-intro" aria-selected="true" aria-controls="intro">① 認識太陽光電</button>
-      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today">② 今日發電功率與案場資訊</button>
-      <button type="button" role="tab" id="tab-stats" aria-selected="false" aria-controls="stats">③ 收集紀錄與統計</button>
+      <button type="button" role="tab" id="tab-intro" aria-selected="true" aria-controls="intro"><i class="tab-dot"></i>認識太陽光電</button>
+      <button type="button" role="tab" id="tab-today" aria-selected="false" aria-controls="today"><i class="tab-dot"></i>今日發電功率與案場資訊</button>
+      <button type="button" role="tab" id="tab-stats" aria-selected="false" aria-controls="stats"><i class="tab-dot"></i>收集紀錄與統計</button>
     </nav>
   </div>
 </header>
@@ -31,8 +31,8 @@
     <p class="hint">第一次來嗎？先看看太陽光電怎麼發電、哪些因素會影響發電，再到「今日發電功率與案場資訊」看今天的資料。</p>
     <button class="go" type="button" data-go="today">前往今日發電功率與案場資訊 →</button>
   </section>
-  <div class="group">
-    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">太陽光電入門</h2><p class="group-desc">認識太陽光電怎麼發電，以及哪些因素會影響發電。</p></div></div>
+  <div class="group g-info">
+    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">太陽光電入門<span class="g-tag">說明</span></h2><p class="group-desc">認識太陽光電怎麼發電，以及哪些因素會影響發電。</p></div></div>
   <section class="panel" aria-labelledby="h-flow">
     <div class="panel-head"><h2 id="h-flow">太陽光電怎麼發電</h2><p class="hint">從陽光到用電的路徑</p></div>
     <div class="flow">
@@ -55,8 +55,8 @@
     </div>
   </section>
   </div>
-  <div class="group">
-    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">台灣太陽光電現況</h2><p class="group-desc">了解台灣目前的太陽光電裝置容量與推動目標。</p></div></div>
+  <div class="group g-data">
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">台灣太陽光電現況<span class="g-tag">資料</span></h2><p class="group-desc">了解台灣目前的太陽光電裝置容量與推動目標。</p></div></div>
   <section class="panel" aria-labelledby="h-goal">
     <div class="panel-head"><h2 id="h-goal">台灣太陽光電推動目標</h2><p class="hint">政府原訂 114 年太陽光電裝置容量達 20 GW</p></div>
     <div class="goal">
@@ -73,8 +73,8 @@
     </div>
   </section>
   </div>
-  <div class="group">
-    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">看懂儀表板</h2><p class="group-desc">前往「今日發電功率與案場資訊」之前，先了解名詞與資料說明。</p></div></div>
+  <div class="group g-info">
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">看懂儀表板<span class="g-tag">說明</span></h2><p class="group-desc">前往「今日發電功率與案場資訊」之前，先了解名詞與資料說明。</p></div></div>
   <section class="panel" aria-labelledby="h-terms">
     <div class="panel-head"><h2 id="h-terms">看懂儀表板的名詞</h2></div>
     <dl class="terms">
@@ -82,6 +82,8 @@
       <dt>功率與發電量</dt><dd><b>發電功率（MW）</b>是某一瞬間的發電能力；<b>發電量（MWh）</b>是一段時間累積的電量，1 MWh＝1,000 度。本網站顯示的數值為發電功率。</dd>
       <dt>淨發電量</dt><dd>台電資料的欄位名稱，實際上是各機組在某個時刻送入電網的<b>發電功率</b>（MW），每 10 分鐘更新一次；「淨」代表已扣除電站自用電。</dd>
       <dt>發購電量</dt><dd>台電自有案場的發電量，加上台電向民間案場購買的電量。</dd>
+      <dt>大型案場</dt><dd>台電向民間購電、且在台電資料中個別列出的機組，例如碩力光、崙尾光、星崙光、向陽光。</dd>
+      <dt>小型案場</dt><dd>台電資料中的「其它購電太陽能」，為未個別列出的購電案場，由台電依取樣比例估算後整併成一個數值（台電註 7）。</dd>
       <dt>試運轉案場</dt><dd>取得電業執照前的測試階段，暫不計入裝置容量（台電註 10）。</dd>
     </dl>
   </section>
@@ -98,11 +100,11 @@
 
 <!-- 主題二：今日發電功率與案場資訊 -->
 <main class="wrap tab-panel off" id="today" role="tabpanel" aria-labelledby="tab-today">
-  <!-- ① 上方：全台地圖＋即時發電 -->
+  <!-- 上方：全台地圖＋即時發電 -->
   <section class="panel" aria-labelledby="h-map">
     <div class="panel-head">
       <h2 id="h-map">台電自有發電站位置與全台即時發電功率</h2>
-      <p class="hint">地圖上為台電自有太陽光電發電站；購電案場位置未公開，列在右側</p>
+      <p class="hint">地圖上為台電自有太陽光電發電站；大型、小型案場位置未公開，列在右側</p>
     </div>
     <div class="map-grid">
       <div class="map-box">
@@ -111,14 +113,14 @@
       </div>
       <aside class="side">
         <div class="kpis" id="kpis"></div>
-        <h3>購電案場（位置未公開）</h3>
+        <h3>大型案場（位置未公開）</h3>
         <ol class="bars" id="purchasedBars"></ol>
-        <p class="note">「其它購電太陽能」為台電依取樣比例估算的整併項目（台電註7）。</p>
+        <p class="note">小型案場＝台電資料的「其它購電太陽能」，為台電依取樣比例估算的整併項目（台電註7），無法拆成個別案場，故不列入長條。</p>
       </aside>
     </div>
   </section>
 
-  <!-- ② 下方：台電自有與購電＋今日發電功率變化＋資料一致性 -->
+  <!-- 下方：今日發電功率變化＋資料一致性＋台電自有／大型／小型案場 -->
   <section class="panel" aria-labelledby="h-day">
     <div class="panel-head">
       <h2 id="h-day">今日發電功率變化與資料一致性</h2>
@@ -126,12 +128,12 @@
     </div>
     <div class="day-grid">
       <figure class="chart-card wide">
-        <figcaption>① 今日發電功率組成（MW，台電自有＋購電；堆疊面積圖，虛線為台電小計）</figcaption>
+        <figcaption>今日發電功率組成（MW，台電自有＋大型案場＋小型案場；堆疊面積圖，虛線為台電小計）</figcaption>
         <div class="legend" id="areaLegend"></div>
         <div class="chart" id="areaChart"></div>
       </figure>
       <figure class="chart-card">
-        <figcaption>② 資料一致性</figcaption>
+        <figcaption>資料一致性</figcaption>
         <div class="big" id="consistBig">–</div>
         <p class="small" id="consistText"></p>
         <div class="chart" id="diffChart"></div>
@@ -141,12 +143,16 @@
 
     <div class="tables">
       <div>
-        <h3>台電自有</h3>
+        <h3><i class="sw" style="background:var(--s-own)"></i>台電自有</h3>
         <table class="units" id="ownTable"></table>
       </div>
       <div>
-        <h3>購電</h3>
+        <h3><i class="sw" style="background:var(--s-site)"></i>大型案場（購電個別機組）</h3>
         <table class="units" id="purTable"></table>
+      </div>
+      <div>
+        <h3><i class="sw" style="background:var(--s-est)"></i>小型案場（其它購電太陽能）</h3>
+        <table class="units" id="smallTable"></table>
       </div>
     </div>
     <p class="note">發電功率為台電資料欄位「淨發電量（MW）」，即該時刻送入電網的瞬間功率；發電比率＝發電功率 ÷ 裝置容量，為該時刻的瞬間比例，不同於以一段期間計算的容量因數。</p>
@@ -166,12 +172,12 @@
     <p class="hint" id="statsRange">載入中…</p>
     <p class="hint" id="statsNote"></p>
   </section>
-  <div class="group">
-    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">系統穩定度</h2><p class="group-desc">自系統完整運作起連續累計，不依週或月切分。</p></div></div>
+  <div class="group g-data">
+    <div class="group-head"><span class="group-no">1</span><div><h2 class="group-title">系統穩定度<span class="g-tag">資料</span></h2><p class="group-desc">自系統完整運作起連續累計，不依週或月切分。</p></div></div>
     <section class="panel"><div class="kpis stat-kpis" id="statsKpis"></div></section>
   </div>
-  <div class="group">
-    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發電功率趨勢</h2><p class="group-desc">每天的尖峰與 12:00 發電功率（台電公布的太陽能小計）。</p></div></div>
+  <div class="group g-data">
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發電功率趨勢<span class="g-tag">資料</span></h2><p class="group-desc">每天的尖峰與 12:00 發電功率（台電公布的太陽能小計）。</p></div></div>
     <section class="panel">
       <figure class="chart-card">
         <figcaption>每日尖峰與 12:00 發電功率</figcaption>
@@ -180,8 +186,8 @@
       </figure>
     </section>
   </div>
-  <div class="group">
-    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較</h2><p class="group-desc">週以 7 天為單位、月以日曆月份彙總；10 月自 10/13 起算。</p></div></div>
+  <div class="group g-data">
+    <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較<span class="g-tag">資料</span></h2><p class="group-desc">週以 7 天為單位、月以日曆月份彙總；10 月自 10/13 起算。</p></div></div>
     <section class="panel" aria-labelledby="h-week">
       <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週，最新的週在最上方</p></div>
       <div class="table-scroll"><table class="units stat-table" id="weekTable"></table></div>
@@ -191,8 +197,8 @@
       <div class="table-scroll"><table class="units stat-table" id="monthTable"></table></div>
     </section>
   </div>
-  <div class="group">
-    <div class="group-head"><span class="group-no">4</span><div><h2 class="group-title">計算方式與驗證</h2><p class="group-desc">本頁數字的計算公式、判定標準與驗證結果，點選標題展開。</p></div></div>
+  <div class="group g-info">
+    <div class="group-head"><span class="group-no">4</span><div><h2 class="group-title">計算方式與驗證<span class="g-tag">說明</span></h2><p class="group-desc">本頁數字的計算公式、判定標準與驗證結果，點選標題展開。</p></div></div>
     <section class="panel">
       <details class="method">
         <summary>計算公式</summary>
@@ -246,8 +252,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261106d"></script>
-<script src="app.js?v=20261106d"></script>
+<script src="config.js?v=20261109a"></script>
+<script src="app.js?v=20261109a"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

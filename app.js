@@ -6,8 +6,8 @@
   const CFG = window.SOLAR_CONFIG || {};
   const LIVE_UNITS = ["彰濱光", "南鹽光"]; // 可一對一對應到發電站的機組
   const GROUPS = [
-    { key: "purEst", name: "購電：其它購電太陽能（估算整併）", color: "var(--s-est)" },
-    { key: "purSite", name: "購電：個別案場", color: "var(--s-site)" },
+    { key: "purEst", name: "小型案場（其它購電太陽能，估算）", color: "var(--s-est)" },
+    { key: "purSite", name: "大型案場（購電個別機組）", color: "var(--s-site)" },
     { key: "own", name: "台電自有", color: "var(--s-own)" },
   ];
   const fmt = (v, d = 1) => (v == null || !isFinite(v) ? "–" : Number(v).toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d }));
@@ -63,16 +63,17 @@
   function renderAll(d) {
     const own = d.units.filter((u) => u.category === "台電自有");
     const pur = d.units.filter((u) => u.category === "購電");
+    const big = pur.filter((u) => u.name !== "其它購電太陽能"), small = pur.filter((u) => u.name === "其它購電太陽能");
     const sum = (a) => a.reduce((s, u) => s + (u.net || 0), 0);
-    const ownMW = sum(own), purMW = sum(pur);
     renderHeader(d);
-    renderKpis(d, ownMW, purMW);
+    renderKpis(d, sum(own), sum(big), sum(small));
     renderMap(d);
     renderPurchased(pur);
     renderArea(d.series);
     renderConsistency(d);
     renderTable("ownTable", own, false);
-    renderTable("purTable", pur, true);
+    renderTable("purTable", big, true);
+    renderTable("smallTable", small, true);
   }
 
   function renderHeader(d) {
@@ -89,18 +90,18 @@
     $("banner").textContent = msgs.join(" ");
   }
 
-  function renderKpis(d, ownMW, purMW) {
+  function renderKpis(d, ownMW, bigMW, smallMW) {
     const c = d.consistency || {};
     const pct = c.n ? (c.match / c.n) * 100 : null;
     const k = (lbl, val, unit, sw) => `<div class="kpi"><div class="lbl">${sw ? `<span class="sw" style="background:${sw}"></span>` : ""}${lbl}</div><div class="val">${val}<small>${unit}</small></div></div>`;
     const ser = d.series || [];
     const peak = ser.reduce((m, s) => (s.sub > (m ? m.sub : -1) ? s : m), null);
     $("kpis").innerHTML =
-      k("即時發電功率（台電自有＋購電）", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
+      k("全台即時發電功率", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
       k("資料一致性（今日）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") +
       k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW") +
-      k("台電自有", fmt(ownMW), "MW", "var(--s-own)") +
-      k("購電", fmt(purMW), "MW", "var(--s-est)");
+      [k("台電自有", fmt(ownMW), "MW", "var(--s-own)"), k("大型案場", fmt(bigMW), "MW", "var(--s-site)"),
+        k("小型案場（估算）", fmt(smallMW), "MW", "var(--s-est)")].map((s) => s.replace('class="kpi"', 'class="kpi third"')).join("");
   }
 
   // ───── 地圖 ─────
@@ -165,9 +166,7 @@
   function renderPurchased(pur) {
     const list = pur.filter((u) => u.name !== "其它購電太陽能").sort((a, b) => (b.net || 0) - (a.net || 0));
     const max = d3.max(list, (u) => u.net || 0) || 1;
-    const est = pur.find((u) => u.name === "其它購電太陽能");
     $("purchasedBars").innerHTML =
-      (est ? `<li><span>其它購電太陽能</span><span class="tag">估算整併，不畫長條</span><span class="num">${fmt(est.net)} MW</span></li>` : "") +
       list.map((u) => {
         const tag = shortStatus(u.status) || (u.capacity == null ? "試運轉" : "");
         return `<li title="${u.name}${tag ? "（" + tag + "）" : ""}"><span>${u.name}${tag ? ` <span class="tag">${tag}</span>` : ""}</span><span class="track"><span class="fill" style="width:${((u.net || 0) / max) * 100}%;display:block"></span></span><span class="num">${fmt(u.net)} MW</span></li>`;
@@ -201,7 +200,7 @@
       .on("mousemove", (evt) => {
         const [mx] = d3.pointer(evt), s = series[bis(series, x.invert(mx))];
         cross.attr("x1", x(toMin(s.t))).attr("x2", x(toMin(s.t))).style("opacity", 1);
-        showTip(evt, `<b>${s.t} 發電功率</b>${row("台電小計", fmt(s.sub) + " MW")}${GROUPS.slice().reverse().map((g) => row(g.name.replace("購電：", ""), fmt(s[g.key]) + " MW")).join("")}`);
+        showTip(evt, `<b>${s.t} 發電功率</b>${row("台電小計", fmt(s.sub) + " MW")}${GROUPS.slice().reverse().map((g) => row(g.name.replace(/（.*$/, ""), fmt(s[g.key]) + " MW")).join("")}`);
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
   }
