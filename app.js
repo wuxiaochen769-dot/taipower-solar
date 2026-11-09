@@ -323,6 +323,7 @@
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
     renderTrend(days);
+    renderReg(days);
     renderWeeks(days, start, lastDay);
     renderMonths(days, start, lastDay);
   }
@@ -447,21 +448,68 @@
       `<td class="n">${fmt(s.avgNoon)}</td><td class="n">${pctTxt(s.comp)}</td></tr>`;
   }
 
+  // 整體趨勢：每日尖峰的線性迴歸（最小平方法），排除已說明的異常事件日
+  function linReg(pts) {
+    const n = pts.length, mx = d3.mean(pts, (p) => p[0]), my = d3.mean(pts, (p) => p[1]);
+    const sxy = d3.sum(pts, (p) => (p[0] - mx) * (p[1] - my)), sxx = d3.sum(pts, (p) => (p[0] - mx) ** 2);
+    const b = sxx ? sxy / sxx : 0, a = my - b * mx;
+    const sst = d3.sum(pts, (p) => (p[1] - my) ** 2), sse = d3.sum(pts, (p) => (p[1] - (a + b * p[0])) ** 2);
+    return { a, b, r2: sst ? 1 - sse / sst : 0, n, my };
+  }
+  function renderReg(days) {
+    const el = d3.select("#regChart"); if (el.empty()) return; el.selectAll("*").remove();
+    const t0 = toDate(days[0].d), dx = (d) => Math.round((toDate(d.d) - t0) / DAY);
+    const used = days.filter((d) => d.peak != null && !eventOf(d.d)), skip = days.filter((d) => d.peak != null && eventOf(d.d));
+    if (used.length < 7) { $("regSum").textContent = "資料少於 7 天，暫不計算趨勢。"; return; }
+    const R = linReg(used.map((d) => [dx(d), d.peak])), wk = R.b * 7, pct = wk / R.my;
+    const lvl = R.r2 >= 0.6 ? "明顯" : R.r2 >= 0.3 ? "中等" : "很弱";
+    const dir = Math.abs(pct) < 0.005 ? "大致持平" : wk < 0 ? `每週約下降 ${fmt(-wk, 0)} MW（約 ${fmt(-pct * 100, 1)}%）` : `每週約上升 ${fmt(wk, 0)} MW（約 ${fmt(pct * 100, 1)}%）`;
+    const evNames = [...new Set(skip.map((d) => eventOf(d.d).title))].join("、");
+    $("regSum").innerHTML = `<b>近 ${days.length} 天尖峰${dir}</b>　趨勢強度：${lvl}（R² ${fmt(R.r2, 2)}）` +
+      `${wk < 0 && R.r2 >= 0.3 ? "；推測與秋冬日照時間變短、太陽角度變低有關" : ""}<span class="est-tag">推估資訊</span>` +
+      `<span class="reg-note">${skip.length ? `已排除 ${evNames} ${skip.length} 天；` : ""}由台電公布值計算的統計推估，非台電公布值；資料期間短，僅供參考</span>`;
+    $("regLegend").innerHTML = `<span><i style="background:var(--accent);border-radius:50%"></i>每日尖峰（納入計算）</span>` +
+      (skip.length ? `<span><i style="background:transparent;border:1.5px solid var(--muted);border-radius:50%"></i>異常事件日（排除）</span>` : "") +
+      `<span><i class="dash" style="border-top-color:var(--warn)"></i>趨勢線</span>`;
+    const W = el.node().clientWidth || 900, H = Math.max(200, Math.round(W * 0.24)), m = { t: 14, r: 22, b: 30, l: 62 };
+    const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
+    const x = d3.scaleTime().domain([t0, toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
+    const lo = d3.min(days, (d) => d.peak), hi = d3.max(days, (d) => d.peak);
+    const y = d3.scaleLinear().domain([Math.max(0, lo - 500), hi + 300]).nice().range([H - m.b, m.t]);
+    svg.append("g").attr("class", "gridline").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r)).tickFormat(""));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${H - m.b})`)
+      .call(d3.axisBottom(x).tickValues(days.filter((d, i) => i % Math.max(1, Math.ceil(days.length / Math.floor(W / 70))) === 0).map((d) => toDate(d.d))).tickFormat((d) => md(ymd(d))));
+    svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat((v) => d3.format(",")(v)));
+    svg.append("text").attr("x", 4).attr("y", 12).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
+    const last = dx(days[days.length - 1]);
+    svg.append("line").attr("x1", x(t0)).attr("x2", x(toDate(days[days.length - 1].d))).attr("y1", y(R.a)).attr("y2", y(R.a + R.b * last))
+      .style("stroke", "var(--warn)").style("stroke-width", 2).style("stroke-dasharray", "6 5");
+    svg.append("g").selectAll("circle").data(used).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 4).style("fill", "var(--accent)");
+    svg.append("g").selectAll("circle").data(skip).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 4)
+      .style("fill", "var(--card)").style("stroke", "var(--muted)").style("stroke-width", 1.5);
+    svg.append("g").selectAll("circle").data(used.concat(skip)).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 10).style("fill", "transparent")
+      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("趨勢線", fmt(R.a + R.b * dx(d), 0) + " MW")}` + (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}（不納入計算）</div>` : "")))
+      .on("mouseleave", hideTip);
+  }
+
   function renderWeeks(days, start, lastDay) {
-    // 自統計起始日起每 7 天為一週（不以週一切分，避免第一週不完整）
+    // 自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日，並與前一週比較
     let ws = toDate(start);
-    const rows = []; let i = 1;
+    const rows = []; let i = 1, prev = null;
     while (ymd(ws) <= lastDay) {
       const we = new Date(ws.getTime() + 6 * DAY), a = ymd(ws), b = ymd(we);
       const ds = days.filter((d) => d.d >= a && d.d <= b);
       if (ds.length) {
-        const done = b <= lastDay && ds.length === 7;
-        rows.push(statRow(`第 ${i} 週`, `${md(a)}～${md(b)}`, ds, `<td class="n">${ds.length}</td><td>${done ? '<span class="pill">完整</span>' : '<span class="pill warn">進行中</span>'}</td>`));
-        i++;
+        const ok = ds.filter((d) => d.peak != null && !eventOf(d.d)), ex = ds.length - ok.length;
+        const avg = ok.length ? d3.mean(ok, (d) => d.peak) : null, s = summarize(ds), done = b <= lastDay && ds.length === 7;
+        let cmp = "–";
+        if (avg != null && prev != null) { const df = avg - prev; cmp = `<span class="${df < 0 ? "dn" : "up"}">${df < 0 ? "▼" : "▲"} ${fmt(Math.abs(df), 0)}</span>`; }
+        rows.push(`<tr><td>第 ${i} 週<div class="sub-cell">${md(a)}～${md(b)}${done ? "" : "（進行中）"}</div></td><td class="n">${fmt(avg)}${ex ? `<div class="sub-cell">不含事件日 ${ex} 天</div>` : ""}</td><td class="n">${cmp}</td><td class="n">${pctTxt(s.comp)}</td></tr>`);
+        if (avg != null) prev = avg; i++;
       }
       ws = new Date(ws.getTime() + 7 * DAY);
     }
-    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">天數</th><th>狀態</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">平均尖峰 (MW)</th><th class="n">與前週相比 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
   function renderMonths(days, start, lastDay) {

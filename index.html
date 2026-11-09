@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109n">
+<link rel="stylesheet" href="style.css?v=20261109o">
 </head>
 <body>
 <header class="top">
@@ -211,8 +211,14 @@
   </div>
   <div class="group g-data">
     <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較<span class="g-tag">資料</span></h2><p class="group-desc">週以 7 天為單位、月以日曆月份彙總；10 月自 10/13 起算。</p></div></div>
+    <section class="panel" aria-labelledby="h-reg">
+      <div class="panel-head"><h2 id="h-reg">整體趨勢<span class="est-tag">推估資訊</span></h2><p class="hint">每日尖峰的線性迴歸（排除已說明的異常事件日）</p></div>
+      <p class="reg-sum" id="regSum"></p>
+      <div class="legend" id="regLegend"></div>
+      <div class="chart" id="regChart"></div>
+    </section>
     <section class="panel" aria-labelledby="h-week">
-      <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週，最新的週在最上方</p></div>
+      <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日</p></div>
       <div class="table-scroll"><table class="units stat-table" id="weekTable"></table></div>
     </section>
     <section class="panel" aria-labelledby="h-month">
@@ -234,7 +240,8 @@
             <tr><td>一致判定</td><td>｜各機組加總 − 台電小計｜≤ 0.05 MW</td><td>台電小計只到小數第 1 位，四捨五入誤差最大 ±0.05</td></tr>
             <tr><td>資料一致性</td><td>一致筆數 ÷ 實際筆數</td><td>代表收集沒有遺漏，不代表台電數值本身的準確度</td></tr>
             <tr><td>每日尖峰發電功率</td><td>當日 06:00～18:00 台電小計的最大值</td><td>10 分鐘取樣的瞬間發電功率（MW），不是發電量（MWh）</td></tr>
-            <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天；月：依日曆月份</td></tr>
+            <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天，不含已說明的異常事件日；月：依日曆月份</td></tr>
+            <tr><td>整體趨勢（推估）</td><td>最小平方法線性迴歸 y ＝ a ＋ b·x</td><td>x 為日數、y 為每日尖峰；排除已說明的異常事件日；每週變化 ＝ b × 7；R² 越接近 1，趨勢越明確</td></tr>
             <tr><td>月收集完整度</td><td>實際筆數 ÷（統計期間天數 × 73）</td><td>該月 1 日（10 月自 10/13）至月底或最新已結束日；整天未收到也會計入</td></tr>
           </tbody>
         </table>
@@ -275,8 +282,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261109n"></script>
-<script src="app.js?v=20261109n"></script>
+<script src="config.js?v=20261109o"></script>
+<script src="app.js?v=20261109o"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

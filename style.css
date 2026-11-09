@@ -267,3 +267,11 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .trend-notes .pill.est { background: transparent; border: 1px dashed var(--muted); }
 .trend-notes .est-tag { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 6px; }
 .trend-notes li { margin: 0 0 4px; }
+
+/* 2026-11-09 示意：整體趨勢（線性迴歸）與精簡週彙總 */
+.reg-sum { margin: 0 0 4px; color: var(--ink2); font-size: 16.25px; }
+.reg-sum b { color: var(--ink); }
+.reg-sum .est-tag { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 6px; }
+.reg-sum .reg-note { display: block; font-size: 14.375px; color: var(--muted); margin-top: 2px; }
+.stat-table .dn { color: var(--warn); } .stat-table .up { color: var(--ok); }
+#h-reg .est-tag { font-size: 13.75px; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: 8px; vertical-align: 2px; }
