@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109a">
+<link rel="stylesheet" href="style.css?v=20261109d">
 </head>
 <body>
 <header class="top">
@@ -123,7 +123,7 @@
   <!-- 下方：今日發電功率變化＋資料一致性＋台電自有／大型／小型案場 -->
   <section class="panel" aria-labelledby="h-day">
     <div class="panel-head">
-      <h2 id="h-day">今日發電功率變化與資料一致性</h2>
+      <h2 id="h-day">今日發電功率變化<span class="dev-only">與資料一致性</span></h2>
       <p class="hint">06:00–18:00 每 10 分鐘一筆，台電公布的發電功率（MW）；台電資料約延遲 10～15 分鐘</p>
     </div>
     <div class="day-grid">
@@ -132,8 +132,8 @@
         <div class="legend" id="areaLegend"></div>
         <div class="chart" id="areaChart"></div>
       </figure>
-      <figure class="chart-card">
-        <figcaption>資料一致性</figcaption>
+      <figure class="chart-card dev-only">
+        <figcaption>資料一致性（開發者檢視）</figcaption>
         <div class="big" id="consistBig">–</div>
         <p class="small" id="consistText"></p>
         <div class="chart" id="diffChart"></div>
@@ -145,14 +145,14 @@
       <div>
         <h3><i class="sw" style="background:var(--s-own)"></i>台電自有</h3>
         <table class="units" id="ownTable"></table>
+        <h3 class="sub-h"><i class="sw" style="background:var(--s-est)"></i>小型案場（其它購電太陽能）</h3>
+        <table class="units" id="smallTable"></table>
+        <h3 class="sub-h">三類案場合計與占比<span class="share-time" id="shareTime"></span></h3>
+        <table class="units share-table" id="shareTable"></table>
       </div>
       <div>
         <h3><i class="sw" style="background:var(--s-site)"></i>大型案場（購電個別機組）</h3>
         <table class="units" id="purTable"></table>
-      </div>
-      <div>
-        <h3><i class="sw" style="background:var(--s-est)"></i>小型案場（其它購電太陽能）</h3>
-        <table class="units" id="smallTable"></table>
       </div>
     </div>
     <p class="note">發電功率為台電資料欄位「淨發電量（MW）」，即該時刻送入電網的瞬間功率；發電比率＝發電功率 ÷ 裝置容量，為該時刻的瞬間比例，不同於以一段期間計算的容量因數。</p>
@@ -161,7 +161,7 @@
   <footer class="foot">
     <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺<a href="https://data.gov.tw/dataset/17141" target="_blank" rel="noopener">「台灣電力公司再生能源各場址資料」</a>（2024 年版，裝置容量可能已變動），經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
     <p>彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</p>
-    <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</p>
+    <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。<span class="dev-only">資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</span></p>
   </footer>
 </main>
 
@@ -252,8 +252,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261109a"></script>
-<script src="app.js?v=20261109a"></script>
+<script src="config.js?v=20261109d"></script>
+<script src="app.js?v=20261109d"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

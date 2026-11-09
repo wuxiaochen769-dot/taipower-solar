@@ -4,6 +4,17 @@
 (function () {
   "use strict";
   const CFG = window.SOLAR_CONFIG || {};
+  // 開發者檢視：網址加 ?dev=1 才顯示「資料一致性」等檢核內容（一般民眾看不到；不是密碼保護）
+  // 開過一次 ?dev=1 後，這台電腦的這個瀏覽器會記住（之後用一般網址也是開發者檢視）；?dev=0 取消
+  const DEV = (() => {
+    const q = new URLSearchParams(location.search).get("dev");
+    try {
+      if (q === "1") localStorage.setItem("solarDev", "1");
+      if (q === "0") localStorage.removeItem("solarDev");
+      return q === "1" || (q !== "0" && localStorage.getItem("solarDev") === "1");
+    } catch (e) { return q === "1"; }
+  })();
+  document.documentElement.classList.toggle("dev", DEV);
   const LIVE_UNITS = ["彰濱光", "南鹽光"]; // 可一對一對應到發電站的機組
   const GROUPS = [
     { key: "purEst", name: "小型案場（其它購電太陽能，估算）", color: "var(--s-est)" },
@@ -67,6 +78,7 @@
     const sum = (a) => a.reduce((s, u) => s + (u.net || 0), 0);
     renderHeader(d);
     renderKpis(d, sum(own), sum(big), sum(small));
+    renderShare(d, sum(own), sum(big), sum(small));
     renderMap(d);
     renderPurchased(pur);
     renderArea(d.series);
@@ -98,10 +110,25 @@
     const peak = ser.reduce((m, s) => (s.sub > (m ? m.sub : -1) ? s : m), null);
     $("kpis").innerHTML =
       k("全台即時發電功率", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
-      k("資料一致性（今日）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") +
-      k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW") +
+      (DEV ? k("資料一致性（今日，開發者檢視）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") : "") +
+      k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW").replace('class="kpi"', DEV ? 'class="kpi"' : 'class="kpi wide"') +
       [k("台電自有", fmt(ownMW), "MW", "var(--s-own)"), k("大型案場", fmt(bigMW), "MW", "var(--s-site)"),
         k("小型案場（估算）", fmt(smallMW), "MW", "var(--s-est)")].map((s) => s.replace('class="kpi"', 'class="kpi third"')).join("");
+  }
+
+  // ───── 三類案場合計與占比 ─────
+  function renderShare(d, ownMW, bigMW, smallMW) {
+    const total = ownMW + bigMW + smallMW;
+    const parts = [
+      { name: "台電自有", v: ownMW, c: "var(--s-own)" },
+      { name: "大型案場（購電個別機組）", v: bigMW, c: "var(--s-site)" },
+      { name: "小型案場（其它購電太陽能，估算）", v: smallMW, c: "var(--s-est)" },
+    ];
+    const pct = (v) => (total > 0 ? (v / total) * 100 : null);
+    $("shareTime").textContent = d.time ? `（${d.date} ${d.time}）` : "";
+    const rowsHtml = parts.map((p) => `<tr><td><i class="sw" style="background:${p.c}"></i>${p.name}</td><td class="n">${fmt(p.v)}</td><td class="n">${pct(p.v) == null ? "–" : fmt(pct(p.v)) + "%"}</td></tr>`).join("");
+    $("shareTable").innerHTML = `<thead><tr><th>類別</th><th class="n">發電功率 (MW)</th><th class="n">占比</th></tr></thead><tbody>${rowsHtml}</tbody>` +
+      `<tfoot><tr><td><b>合計</b></td><td class="n"><b>${fmt(total)}</b></td><td class="n"><b>100%</b></td></tr></tfoot>`;
   }
 
   // ───── 地圖 ─────
