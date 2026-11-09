@@ -5,6 +5,7 @@
   --s-est: #2a78d6; --s-site: #eb6834; --s-own: #1baf7a; --s-sub: #1f2328;
   --band: rgba(107,114,128,.16); --warn-bg: #fef2f2; --warn: #b91c1c; --ok: #15803d;
   --accent: #1f4e79;
+  --pv-sky: #eaf3fb; --pv-ground: #dfe9d6; --pv-road: #c9ced6; --pv-wall-t: #f4efe6; --pv-wall-l: #efe6d6; --pv-wall-r: #ddd1bd; --pv-roof-b: #9a5b45; --pv-roof-f: #b36a4f; --pv-door: #8a6a4f; --pv-pole: #6b7280; --pv-wire: #4b5563;
   --t-intro: #7c5cc4; --t-today: #0e8a8a; --t-stats: #c2417a;
 }
 @media (prefers-color-scheme: dark) {
@@ -12,14 +13,14 @@
     --bg: #111315; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #9ca3af;
     --line: #2c2f33; --grid: #24272b; --land: #23272c; --land-line: #3a4048;
     --s-est: #3987e5; --s-site: #d95926; --s-own: #199e70; --s-sub: #f0efec;
-    --band: rgba(195,194,183,.18); --warn-bg: #2d1214; --warn: #f87171; --ok: #4ade80; --accent: #8db8e8; --t-intro: #a68ce6; --t-today: #3fb8b8; --t-stats: #e57aa6;
+    --band: rgba(195,194,183,.18); --warn-bg: #2d1214; --warn: #f87171; --ok: #4ade80; --accent: #8db8e8; --t-intro: #a68ce6; --t-today: #3fb8b8; --t-stats: #e57aa6; --pv-sky: #1c2633; --pv-ground: #26322a; --pv-road: #3a4048; --pv-wall-t: #cfc8bb; --pv-wall-l: #bfb6a6; --pv-wall-r: #a69b88; --pv-roof-b: #7a4535; --pv-roof-f: #8f5240; --pv-door: #5c4533; --pv-pole: #9ca3af; --pv-wire: #9ca3af;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111315; --card: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #9ca3af;
   --line: #2c2f33; --grid: #24272b; --land: #23272c; --land-line: #3a4048;
   --s-est: #3987e5; --s-site: #d95926; --s-own: #199e70; --s-sub: #f0efec;
-  --band: rgba(195,194,183,.18); --warn-bg: #2d1214; --warn: #f87171; --ok: #4ade80; --accent: #8db8e8; --t-intro: #a68ce6; --t-today: #3fb8b8; --t-stats: #e57aa6;
+  --band: rgba(195,194,183,.18); --warn-bg: #2d1214; --warn: #f87171; --ok: #4ade80; --accent: #8db8e8; --t-intro: #a68ce6; --t-today: #3fb8b8; --t-stats: #e57aa6; --pv-sky: #1c2633; --pv-ground: #26322a; --pv-road: #3a4048; --pv-wall-t: #cfc8bb; --pv-wall-l: #bfb6a6; --pv-wall-r: #a69b88; --pv-roof-b: #7a4535; --pv-roof-f: #8f5240; --pv-door: #5c4533; --pv-pole: #9ca3af; --pv-wire: #9ca3af;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 18.75px/1.55 "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; }
@@ -79,7 +80,7 @@ figcaption { font-weight: 700; font-size: 18.125px; }
 .small { font-size: 16.25px; margin: 2px 0 6px; }
 .muted { color: var(--muted); }
 .tables { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; }
-.tables > div:nth-child(3) { grid-column: 1 / -1; }
+
 table.units { width: 100%; border-collapse: collapse; font-size: 16.875px; }
 .units th, .units td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; }
 .units th { font-size: 15px; color: var(--muted); font-weight: 500; white-space: nowrap; }
@@ -176,3 +177,81 @@ details.method > :not(summary) { margin: 0 14px 14px; }
 .g-tag { display: inline-block; font-size: 14px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 999px; margin-left: 10px; vertical-align: 5px; }
 .group.g-data .g-tag { background: var(--tab, var(--accent)); color: var(--card); border: 1.5px solid var(--tab, var(--accent)); }
 .group.g-info .g-tag { background: color-mix(in srgb, var(--tab, var(--accent)) 14%, var(--card)); color: var(--ink2); border: 1.5px solid color-mix(in srgb, var(--tab, var(--accent)) 40%, var(--card)); }
+
+/* 2026-11-09b：開發者檢視（網址 ?dev=1）才顯示資料一致性 */
+html:not(.dev) .dev-only { display: none !important; }
+html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
+/* 三類案場合計與占比 */
+.share-box { margin: 18px 0 20px; }
+.share-box h3 { margin: 0 0 8px; }
+.share-time { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+.share-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--grid); margin-bottom: 10px; }
+.share-bar span { display: block; height: 100%; }
+.share-bar span + span { border-left: 2px solid var(--card); }
+.share-table td .sw, .units td .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.share-table .muted-row td { color: var(--muted); }
+.tables h3.sub-h { margin-top: 22px; }
+.share-table { max-width: 760px; }
+.share-table th.n { text-align: right; }
+.share-cap { caption-side: bottom; text-align: left; font-size: 14.375px; color: var(--muted); padding-top: 6px; }
+
+/* 2026-11-09：太陽光電怎麼發電（互動立體圖，小型案場為例） */
+.pv3d { display: block; }
+.pv-stage { position: relative; max-width: 980px; margin: 0 auto; }
+.pv3d svg { width: 100%; height: auto; display: block; background: var(--pv-sky); border-radius: 12px; border: 1px solid var(--line); }
+.pv3d .ground { fill: var(--pv-ground); } .pv3d .road { fill: var(--pv-road); }
+.pv3d .wall.t, .pv3d .uwall.t, .pv3d .fwall.t { fill: var(--pv-wall-t); }
+.pv3d .wall.l, .pv3d .uwall.l, .pv3d .fwall.l { fill: var(--pv-wall-l); }
+.pv3d .wall.r, .pv3d .uwall.r, .pv3d .fwall.r { fill: var(--pv-wall-r); }
+.pv3d .roof.b { fill: var(--pv-roof-b); } .pv3d .roof.f { fill: var(--pv-roof-f); }
+.pv3d .uroof.b { fill: var(--pv-roof-b); } .pv3d .uroof.f { fill: var(--pv-roof-f); }
+.pv3d .door { fill: var(--pv-door); } .pv3d .win { fill: #b9d3ee; stroke: #8aa9c9; stroke-width: 1; }
+.pv3d .panel { fill: url(#pvg); stroke: #dfe7f5; stroke-width: 1; }
+.pv3d .cell { stroke: rgba(255,255,255,.45); stroke-width: .8; }
+.pv3d .sun { fill: #f6b628; } .pv3d .rays line { stroke: #f6b628; stroke-width: 3; stroke-linecap: round; }
+.pv3d .beam { stroke: #f6b628; stroke-width: 2; stroke-dasharray: 6 6; opacity: .7; }
+.pv3d .jbox { fill: #8a94a6; stroke: #4b5563; } .pv3d .inverter { fill: #e8edf3; stroke: #4b5563; } .pv3d .meter { fill: #fdfdfd; stroke: #4b5563; }
+.pv3d .dial { fill: none; stroke: #4b5563; stroke-width: 1.5; }
+.pv3d .lbl { font-size: 11px; font-weight: 700; text-anchor: middle; fill: #374151; }
+.pv3d .pole { stroke: var(--pv-pole); stroke-width: 6; stroke-linecap: round; } .pv3d .insul { fill: #9ca3af; }
+.pv3d .hit { fill: transparent; }
+.pv3d .wire { fill: none; stroke: var(--pv-wire); stroke-width: 2; }
+.pv3d .flowline { fill: none; stroke-width: 3; stroke-dasharray: 2 10; stroke-linecap: round; animation: pvflow 1.2s linear infinite; }
+.pv3d .flowline.dc { stroke: #e0a100; } .pv3d .flowline.ac { stroke: #16a34a; }
+@keyframes pvflow { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .pv3d .flowline { animation: none; } }
+.pv3d .badge circle { fill: var(--tab, var(--accent)); stroke: var(--card); stroke-width: 2.5; }
+.pv3d .badge text { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.pv3d .hs { cursor: pointer; outline: none; }
+.pv3d .hs:hover .badge circle, .pv3d .hs:focus-visible .badge circle { r: 15; }
+.pv3d .hs.on .badge circle { fill: #f6b628; stroke: var(--ink); }
+.pv3d .hs.on .badge text { fill: #1f2328; }
+.pv3d .hs:focus-visible { filter: drop-shadow(0 0 4px var(--tab, var(--accent))); }
+
+.pv-info { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--card); }
+.pv-info .pv-step { font-size: 14.375px; color: var(--muted); }
+.pv-info h3 { margin: 2px 0 6px; font-size: 21px; }
+.pv-info p { margin: 0 0 8px; color: var(--ink2); }
+.pv-info .pv-note { font-size: 15.625px; background: var(--grid); border-radius: 8px; padding: 8px 10px; color: var(--ink2); }
+.pv-nav { display: flex; gap: 8px; margin-top: 10px; }
+.pv-nav button { font: inherit; font-size: 15.625px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.pv-nav button:disabled { opacity: .4; cursor: default; }
+.pv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.pv-chips button { font: inherit; font-size: 14.375px; border: 1px solid var(--line); background: var(--card); color: var(--ink2); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.pv-chips button[aria-pressed="true"] { background: var(--tab, var(--accent)); color: var(--card); border-color: var(--tab, var(--accent)); }
+.pv-hint { font-size: 14.375px; color: var(--muted); margin: 6px 2px 0; }
+@media (max-width: 900px) { .pv3d { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .pv3d .badge circle { r: 22px; } .pv3d .badge text { font-size: 22px; } .pv3d .hs:hover .badge circle, .pv3d .hs:focus-visible .badge circle { r: 24px; } }
+
+/* 2026-11-09f：滑過顯示說明 */
+.pv3d .hs[data-k="house"] { cursor: help; }
+.pv3d .hs.on { filter: drop-shadow(0 0 5px #f6b628) drop-shadow(0 0 2px #f6b628); }
+.pv-pop { position: absolute; z-index: 5; max-width: 300px; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.18); padding: 10px 12px; pointer-events: none; font-size: 16.25px; line-height: 1.5; }
+.pv-pop b { display: flex; align-items: center; gap: 6px; font-size: 18.125px; margin-bottom: 4px; }
+.pv-pop .pv-n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--tab, var(--accent)); color: #fff; font-size: 13px; }
+.pv-pop ul { margin: 0; padding-left: 18px; }
+.pv-pop ul.pv-note { margin-top: 6px; padding: 6px 8px 6px 24px; background: var(--grid); border-radius: 6px; font-size: 14.375px; color: var(--ink2); }
+.pv3d .pv-hint { text-align: center; }
+@media (max-width: 640px) { .pv-pop { position: static; max-width: none; margin-top: 8px; box-shadow: none; } }
+.pv3d .pv-scene-lbl.sm { font-size: 13px; }
+.pv3d .pv-scene-lbl { font-size: 15px; font-weight: 700; fill: #374151; text-anchor: middle; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 4px; }

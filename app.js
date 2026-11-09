@@ -398,5 +398,52 @@
   }
 
 
+  // ───── 太陽光電怎麼發電：互動立體圖（2026-11-09；滑過顯示說明，觸控裝置點一下）─────
+  function initPvScene() {
+    const scene = $("pvScene"), stage = $("pvStage"), pop = $("pvPop"); if (!scene) return;
+    const INFO = {
+      house: { t: "屋頂型小型案場", li: ["在建物屋頂設置光電板", "發的電經電表送入台電電網"] },
+      sun: { n: 1, t: "太陽光", li: ["提供發電的能量", "日射量越高，發電越多"] },
+      panel: { n: 2, t: "光電板", li: ["把陽光轉成直流電（DC）"] },
+      jbox: { n: 3, t: "接線箱", li: ["匯集多組光電板的直流電", "設有保護裝置"] },
+      inverter: { n: 4, t: "變流器", li: ["直流電轉成交流電（AC）", "才能送進台電電網"] },
+      meter: { n: 5, t: "計量（電表）", li: ["計算送入電網的電量（度＝kWh）", "台電依此計算購電量"],
+        note: ["小型案場＝台電資料的「其它購電太陽能」，台電依取樣比例估算", "電表記錄「發電量」；本網站顯示的是「發電功率」"] },
+      grid: { n: 6, t: "配電線路", li: ["經電表送入路旁的配電線路", "就近送到附近用戶"] },
+      user: { n: 7, t: "用戶", li: ["家庭、工廠用電", "桿上變壓器把電壓降到住戶可用"] },
+      sub: { n: 8, t: "變電所", li: ["轉換電壓；連接配電與輸電線路", "附近用不完的電送往其他地區"] },
+    };
+    let pinned = null, hideT = null;
+    const place = (g) => {
+      if (window.matchMedia("(max-width: 640px)").matches) { pop.style.left = pop.style.top = ""; return; } // 手機：說明放在圖下方
+      const sr = stage.getBoundingClientRect(), gr = g.getBoundingClientRect();
+      pop.style.left = "0px"; pop.style.top = "0px";
+      const pw = pop.offsetWidth, ph = pop.offsetHeight;
+      let x = gr.right - sr.left + 10, y = gr.top - sr.top + gr.height / 2 - ph / 2;
+      if (x + pw > sr.width - 6) x = gr.left - sr.left - pw - 10;   // 右邊放不下改放左邊
+      if (x < 6) x = Math.max(6, Math.min(sr.width - pw - 6, gr.left - sr.left + gr.width / 2 - pw / 2)), y = gr.bottom - sr.top + 8;
+      y = Math.max(6, Math.min(sr.height - ph - 6, y));
+      pop.style.left = x + "px"; pop.style.top = y + "px";
+    };
+    const show = (g) => {
+      clearTimeout(hideT);
+      const s = INFO[g.dataset.k]; if (!s) return;
+      scene.querySelectorAll(".hs").forEach((x) => x.classList.toggle("on", x === g));
+      pop.innerHTML = `<b>${s.n ? `<span class="pv-n">${s.n}</span>` : ""}${s.t}</b><ul>${s.li.map((x) => `<li>${x}</li>`).join("")}</ul>` +
+        (s.note ? `<ul class="pv-note">${s.note.map((x) => `<li>${x}</li>`).join("")}</ul>` : "");
+      pop.hidden = false; place(g);
+    };
+    const hide = () => { hideT = setTimeout(() => { if (pinned) return; pop.hidden = true; scene.querySelectorAll(".hs.on").forEach((x) => x.classList.remove("on")); }, 120); };
+    scene.querySelectorAll(".hs").forEach((g) => {
+      g.addEventListener("mouseenter", () => { if (!pinned) show(g); });
+      g.addEventListener("mouseleave", hide);
+      g.addEventListener("focus", () => show(g));
+      g.addEventListener("blur", () => { pinned = null; hide(); });
+      g.addEventListener("click", (e) => { e.stopPropagation(); pinned = pinned === g ? null : g; if (pinned) show(g); else hide(); });
+    });
+    document.addEventListener("click", () => { if (pinned) { pinned = null; hide(); } });
+    window.addEventListener("resize", () => { const g = scene.querySelector(".hs.on"); if (g && !pop.hidden) place(g); });
+  }
+  initPvScene();
   init().catch((e) => { $("dataTime").textContent = "載入失敗：" + e.message; });
 })();
