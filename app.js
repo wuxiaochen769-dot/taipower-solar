@@ -327,9 +327,22 @@
     renderMonths(days, start, lastDay);
   }
 
+  // 數據異常說明（2026-11-09 新增）：日期區間內的原因說明；圖上以底色標示
+  // 新增事件時，照格式加一筆即可（from／to 為 YYYY-MM-DD）
+  const EVENTS = [
+    { from: "2026-10-22", to: "2026-10-24", tag: "颱風", title: "薔琵颱風",
+      note: "日照減少，尖峰降至約平常的 4 成；資料收集完整，非收集錯誤" },
+  ];
+  const LOW_RATIO = 0.8; // 尖峰低於統計期間中位數的 80% 視為「明顯偏低」
+  const eventOf = (d) => EVENTS.find((e) => d >= e.from && d <= e.to);
+
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
-    $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>`;
+    const med = d3.median(days, (d) => d.peak), isLow = (d) => d.peak != null && med && d.peak < med * LOW_RATIO;
+    const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d);
+    $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>` +
+      (evs.length ? `<span><i style="background:var(--band)"></i>有異常說明的期間</span>` : "") +
+      `<span><i style="background:var(--warn);border-radius:50%"></i>尖峰明顯偏低（低於中位數 8 成）</span>`;
     const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const x = d3.scaleTime().domain([toDate(days[0].d), toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
@@ -339,19 +352,35 @@
       .call(d3.axisBottom(x).tickValues(days.filter((d, i) => i % Math.max(1, Math.ceil(days.length / Math.floor(W / 70))) === 0).map((d) => toDate(d.d))).tickFormat((d) => md(ymd(d))));
     svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat((v) => d3.format(",")(v)));
     svg.append("text").attr("x", 4).attr("y", 14).attr("fill", "var(--muted)").attr("font-size", 13.75).text("MW");
+    // 異常說明期間：底色＋標籤
+    evs.forEach((e) => {
+      const x0 = Math.max(m.l, x(new Date(toDate(e.from).getTime() - DAY / 2))), x1 = Math.min(W - m.r, x(new Date(toDate(e.to).getTime() + DAY / 2)));
+      svg.append("rect").attr("x", x0).attr("y", m.t).attr("width", Math.max(0, x1 - x0)).attr("height", H - m.t - m.b).style("fill", "var(--band)");
+      svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 14).attr("text-anchor", "middle").attr("font-size", 13.75).attr("font-weight", 700).attr("fill", "var(--ink2)").text(e.tag);
+    });
     const line = (key) => d3.line().defined((d) => d[key] != null).x((d) => x(toDate(d.d))).y((d) => y(d[key]));
     svg.append("path").datum(days).attr("d", line("noon")).style("fill", "none").style("stroke", "var(--s-site)").style("stroke-width", 2);
     svg.append("path").datum(days).attr("d", line("peak")).style("fill", "none").style("stroke", "var(--accent)").style("stroke-width", 2.5);
-    svg.append("g").selectAll("circle").data(days).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 3.5).style("fill", "var(--accent)");
+    svg.append("g").selectAll("circle").data(days).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", (d) => (isLow(d) ? 5 : 3.5)).style("fill", (d) => (isLow(d) ? "var(--warn)" : "var(--accent)"));
     const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).style("stroke", "var(--muted)").style("opacity", 0);
     const bis = d3.bisector((d) => toDate(d.d)).center;
     svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", H - m.t - m.b).style("fill", "transparent")
       .on("mousemove", (evt) => {
         const [mx] = d3.pointer(evt), d = days[bis(days, x.invert(mx))];
         cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
-        showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}`);
+        showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
+          (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}影響</div>` : isLow(d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
+    renderTrendNotes(days, evs, isLow);
+  }
+
+  function renderTrendNotes(days, evs, isLow) {
+    const el = $("trendNotes"); if (!el) return;
+    const pending = days.filter((d) => isLow(d) && !eventOf(d.d));
+    const items = evs.map((e) => `<li><span class="pill">${md(e.from)}～${md(e.to)}</span><b>${e.title}</b>：${e.note}</li>`)
+      .concat(pending.length ? [`<li><span class="pill bad">原因待查</span>${pending.map((d) => md(d.d)).join("、")} 尖峰明顯偏低</li>`] : []);
+    el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {

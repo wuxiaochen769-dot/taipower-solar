@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109j">
+<link rel="stylesheet" href="style.css?v=20261109m">
 </head>
 <body>
 <header class="top">
@@ -199,13 +199,14 @@
     <section class="panel"><div class="kpis stat-kpis" id="statsKpis"></div></section>
   </div>
   <div class="group g-data">
-    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發電功率趨勢<span class="g-tag">資料</span></h2><p class="group-desc">每天的尖峰與 12:00 發電功率（台電公布的太陽能小計）。</p></div></div>
+    <div class="group-head"><span class="group-no">2</span><div><h2 class="group-title">每日發電功率趨勢<span class="g-tag">資料</span></h2><p class="group-desc">每天的尖峰與 12:00 發電功率（台電公布的太陽能小計）；明顯偏低的日期附簡短原因。</p></div></div>
     <section class="panel">
       <figure class="chart-card">
         <figcaption>每日尖峰與 12:00 發電功率</figcaption>
         <div class="legend" id="trendLegend"></div>
         <div class="chart" id="trendChart"></div>
       </figure>
+      <div class="trend-notes" id="trendNotes"></div>
     </section>
   </div>
   <div class="group g-data">
@@ -274,8 +275,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261109j"></script>
-<script src="app.js?v=20261109j"></script>
+<script src="config.js?v=20261109m"></script>
+<script src="app.js?v=20261109m"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

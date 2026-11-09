@@ -255,3 +255,12 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 640px) { .pv-pop { position: static; max-width: none; margin-top: 8px; box-shadow: none; } }
 .pv3d .pv-scene-lbl.sm { font-size: 13px; }
 .pv3d .pv-scene-lbl { font-size: 15px; font-weight: 700; fill: #374151; text-anchor: middle; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 4px; }
+
+/* 2026-11-09：每日發電功率趨勢 — 數據異常說明（簡短） */
+.trend-notes { margin-top: 8px; font-size: 15.625px; color: var(--ink2); display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; }
+.trend-notes .tn-h { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.trend-notes ul { margin: 0; padding: 0; list-style: none; flex: 1 1 300px; }
+.trend-notes li { margin: 0 0 2px; }
+.trend-notes .pill { font-size: 13.75px; padding: 1px 8px; margin-right: 6px; border-radius: 9px; background: var(--band); color: var(--ink2); white-space: nowrap; }
+.trend-notes .pill.bad { background: var(--warn-bg); color: var(--warn); }
+.tip-note { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-weight: 700; color: var(--warn); }
