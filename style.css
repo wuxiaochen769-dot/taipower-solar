@@ -264,3 +264,6 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .trend-notes .pill { font-size: 13.75px; padding: 1px 8px; margin-right: 6px; border-radius: 9px; background: var(--band); color: var(--ink2); white-space: nowrap; }
 .trend-notes .pill.bad { background: var(--warn-bg); color: var(--warn); }
 .tip-note { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-weight: 700; color: var(--warn); }
+.trend-notes .pill.est { background: transparent; border: 1px dashed var(--muted); }
+.trend-notes .est-tag { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 6px; }
+.trend-notes li { margin: 0 0 4px; }

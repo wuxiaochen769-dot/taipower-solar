@@ -341,8 +341,7 @@
     const med = d3.median(days, (d) => d.peak), isLow = (d) => d.peak != null && med && d.peak < med * LOW_RATIO;
     const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d);
     $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>` +
-      (evs.length ? `<span><i style="background:var(--band)"></i>有異常說明的期間</span>` : "") +
-      `<span><i style="background:var(--warn);border-radius:50%"></i>尖峰明顯偏低（低於中位數 8 成）</span>`;
+      `<span><i style="background:var(--warn);border-radius:50%"></i>尖峰明顯偏低</span>`;
     const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const x = d3.scaleTime().domain([toDate(days[0].d), toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
@@ -356,7 +355,8 @@
     evs.forEach((e) => {
       const x0 = Math.max(m.l, x(new Date(toDate(e.from).getTime() - DAY / 2))), x1 = Math.min(W - m.r, x(new Date(toDate(e.to).getTime() + DAY / 2)));
       svg.append("rect").attr("x", x0).attr("y", m.t).attr("width", Math.max(0, x1 - x0)).attr("height", H - m.t - m.b).style("fill", "var(--band)");
-      svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 14).attr("text-anchor", "middle").attr("font-size", 13.75).attr("font-weight", 700).attr("fill", "var(--ink2)").text(e.tag);
+      svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 14).attr("text-anchor", "middle").attr("font-size", 13.75).attr("font-weight", 700).attr("fill", "var(--ink2)").text(x1 - x0 >= 80 ? e.title : e.tag);
+      if (x1 - x0 >= 80) svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 30).attr("text-anchor", "middle").attr("font-size", 12.5).attr("fill", "var(--muted)").text(`${md(e.from)}～${md(e.to)}`);
     });
     const line = (key) => d3.line().defined((d) => d[key] != null).x((d) => x(toDate(d.d))).y((d) => y(d[key]));
     svg.append("path").datum(days).attr("d", line("noon")).style("fill", "none").style("stroke", "var(--s-site)").style("stroke-width", 2);
@@ -372,14 +372,68 @@
           (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}影響</div>` : isLow(d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
-    renderTrendNotes(days, evs, isLow);
+    // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；窄螢幕省略
+    if (W >= 640) evs.forEach((e) => {
+      const lo = days.filter((d) => d.d >= e.from && d.d <= e.to && d.peak != null).sort((a, b) => a.peak - b.peak)[0]; if (!lo) return;
+      const px = x(toDate(lo.d)), py = y(lo.peak), tx = x(new Date(toDate(e.to).getTime() + DAY / 2)) + 14, ty = py + 4;
+      const g = svg.append("g").style("pointer-events", "none");
+      g.append("line").attr("x1", px + 6).attr("y1", py).attr("x2", tx - 4).attr("y2", ty - 4).style("stroke", "var(--warn)").style("stroke-width", 1.2);
+      const t = g.append("text").attr("x", tx).attr("y", ty).attr("font-size", 13.75).attr("fill", "var(--ink)");
+      t.append("tspan").attr("font-weight", 700).attr("fill", "var(--warn)").text(`尖峰約 ${fmt(lo.peak, 0)} MW`);
+      t.append("tspan").attr("x", tx).attr("dy", 18).attr("fill", "var(--ink2)").text(`平常約 ${fmt(med, 0)} MW`);
+    });
+    renderTrendNotes(days);
   }
 
-  function renderTrendNotes(days, evs, isLow) {
+  // ───── 數據異常的推估（2026-11-09 雛型）：用每日統計本身推估原因，帶出判斷脈絡 ─────
+  // 每日資料若含 lg（大型案場尖峰）、sm（小型案場尖峰）、u（各機組尖峰），推估會更細；沒有時只用總尖峰與筆數
+  const UNIT_LOW = 0.3; // 個別機組尖峰低於自己中位數的 30% 視為異常
+  function inferAnomalies(days) {
+    const med = (k) => d3.median(days.filter((d) => d[k] != null), (d) => d[k]);
+    const M = { peak: med("peak"), lg: med("lg"), sm: med("sm") };
+    const out = [];
+    days.forEach((d) => {
+      const r = (k) => (d[k] != null && M[k] ? d[k] / M[k] : null);
+      const low = r("peak") != null && r("peak") < LOW_RATIO, gap = d.n < SLOTS * 0.9;
+      let type = null;
+      if (gap) type = "gap";
+      else if (low && r("lg") != null) type = r("lg") < LOW_RATIO ? "wide" : "est";
+      else if (low) type = "low";
+      if (type) out.push({ d: d.d, type, key: type, day: d, rp: r("peak"), rl: r("lg"), rs: r("sm") });
+      if (d.u && type !== "wide") Object.keys(d.u).forEach((u) => {
+        const um = d3.median(days.filter((x) => x.u && x.u[u] != null), (x) => x.u[u]);
+        if (um > 1 && d.u[u] < um * UNIT_LOW) out.push({ d: d.d, type: "unit", key: "unit:" + u, unit: u, v: d.u[u], um });
+      });
+    });
+    // 連續日期、同類型合併為一段
+    const groups = [];
+    out.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.d < b.d ? -1 : 1)).forEach((o) => {
+      const g = groups[groups.length - 1];
+      if (g && g.key === o.key && (toDate(o.d) - toDate(g.to)) / DAY === 1) { g.to = o.d; g.items.push(o); }
+      else groups.push({ key: o.key, type: o.type, from: o.d, to: o.d, items: [o] });
+    });
+    return { groups: groups.sort((a, b) => (a.from < b.from ? -1 : 1)), M };
+  }
+
+  function renderTrendNotes(days) {
     const el = $("trendNotes"); if (!el) return;
-    const pending = days.filter((d) => isLow(d) && !eventOf(d.d));
-    const items = evs.map((e) => `<li><span class="pill">${md(e.from)}～${md(e.to)}</span><b>${e.title}</b>：${e.note}</li>`)
-      .concat(pending.length ? [`<li><span class="pill bad">原因待查</span>${pending.map((d) => md(d.d)).join("、")} 尖峰明顯偏低</li>`] : []);
+    const { groups, M } = inferAnomalies(days);
+    const pc = (v) => Math.round(v * 10) + " 成";
+    const items = groups.map((g) => {
+      const it = g.items, e = EVENTS.find((x) => x.from <= g.to && x.to >= g.from);
+      const minBy = (k) => it.reduce((m, o) => (o[k] != null && (m == null || o[k] < m) ? o[k] : m), null);
+      // 給一般民眾看的簡短說明：事件名稱（或推估類型）＋一句原因
+      let title, text, est = !(e && g.type !== "unit");
+      if (g.type === "unit") { title = it[0].unit; text = "單一案場數值異常，不影響全台"; }
+      else if (g.type === "gap") { title = "資料不完整"; text = "當天收集中斷，數值可能偏低"; }
+      else {
+        const r = g.type === "wide" ? Math.min(minBy("rl"), minBy("rs")) : minBy("rp");
+        title = e ? e.title : "天氣不佳";
+        text = g.type === "est" ? "小型案場估算值偏低" : `日照減少，發電降至約平常的 ${pc(r)}`;
+      }
+      const range = est ? [g.from, g.to] : [e.from, e.to];
+      return `<li><span class="pill${est ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${est ? '<span class="est-tag">推估</span>' : ""}</li>`;
+    });
     el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` : "";
   }
 
