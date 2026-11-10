@@ -89,7 +89,8 @@ table.units { width: 100%; border-collapse: collapse; font-size: 16.875px; }
 .foot { color: var(--muted); font-size: 15.625px; padding: 6px 0 30px; }
 .tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 15.625px; box-shadow: 0 4px 16px rgba(0,0,0,.15); max-width: min(440px, calc(100vw - 16px)); }
 .tip b { display: block; margin-bottom: 2px; }
-.tip .row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.tip .row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 14px; }
+.tip .row > span:last-child { margin-left: auto; } /* 名稱太長時，數值整段移到下一行靠右，數字與單位不拆開 */
 .tip .row span { white-space: nowrap; } /* 2026-11-10：資訊與單位不換行，一行一個資訊 */
 .tip .row span:last-child { font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) {
@@ -298,3 +299,8 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .tip .tip-foot { margin-top: 4px; font-size: 13.75px; color: var(--muted); }
 .map-legend { flex-direction: column; gap: 4px; }
 .map-legend .off { opacity: .35; }
+@media (max-width: 640px) { .tip { font-size: 14px; padding: 7px 9px; } .tip .tip-foot { font-size: 12.5px; } }
+.tip .stn-grid { display: grid; grid-template-columns: max-content max-content 1fr; column-gap: 1em; align-items: baseline; }
+.tip .stn-grid span { white-space: nowrap; }
+.tip .stn { font-weight: 700; } .tip .stn-sfx { color: var(--muted); } .tip .stn-grid .v { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .tip .stn-grid { grid-template-columns: minmax(3em, max-content) max-content 1fr; column-gap: .8em; } .tip .stn-grid .stn { white-space: normal; } }

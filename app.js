@@ -31,6 +31,7 @@
     let x = evt.clientX + pad, y = evt.clientY + pad;
     if (x + w > window.innerWidth - 8) x = evt.clientX - w - pad;
     if (y + h > window.innerHeight - 8) y = evt.clientY - h - pad;
+    x = Math.max(8, Math.min(x, window.innerWidth - w - 8)); y = Math.max(8, y); // 不超出畫面（手機）
     tip.style.left = x + "px"; tip.style.top = y + "px";
   }
   const hideTip = () => { tip.hidden = true; };
@@ -181,7 +182,6 @@
       const pj = projs.find((p) => p.test && p.test.test(county)) || projs[0];
       return pj.proj([lon, lat]);
     };
-    const short = (n) => n.replace("太陽光電發電站", "");
     const showOwn = mapLayer !== "pur", showPur = mapLayer !== "own";
 
     // 台電自有與大型案場統一格式（2026-11-10）：每個縣市一個圓，數字＝站／場數，大小只在小範圍內變化
@@ -207,17 +207,25 @@
     const mg = svg.append("g");
     mg.selectAll("line").data(nodes.filter((t) => Math.hypot(t.x - t.at[0], t.y - t.at[1]) > t.r * 0.6)).join("line").attr("class", (t) => "lead " + t.kind)
       .attr("x1", (t) => t.at[0]).attr("y1", (t) => t.at[1]).attr("x2", (t) => t.x).attr("y2", (t) => t.y);
+    // 發電站名稱：地點名稱與「太陽光電發電站」中間分隔，地點名稱加粗、後綴淡色
+    // 三欄：地點名稱｜太陽光電發電站（鄉鎮）｜數值；中間欄獨立一欄、上下對齊
+    const stnCells = (s) => { const m = s.name.match(/^(.*?)(太陽光電發電站)$/);
+      return m ? `<span class="stn">${m[1]}</span><span class="stn-sfx">${m[2]}（${s.town}）</span>` : `<span class="stn">${s.name}</span><span class="stn-sfx">（${s.town}）</span>`; };
+    const stnName = (s) => { const m = s.name.match(/^(.*?)(太陽光電發電站)$/);
+      return m ? `<span class="stn">${m[1]}</span><span class="stn-sfx">${m[2]}</span>（${s.town}）` : `${s.name}（${s.town}）`; };
     const tipHtml = (t) => {
       if (t.kind === "pur") return `<b>大型案場｜${t.c}（${t.items.length} 場）</b>` +
         t.items.map((u) => row(`${u.name}（${PUR_SITE[u.name][1]}）`, fmt(u.net) + " MW")).join("") +
         row("合計", fmt(t.size) + " MW") + `<div class="tip-foot">數值為即時發電功率；位置以縣市統整（概略）</div>`;
       const live = t.live.map((s) => row(`${s.unit} 即時發電功率`, fmt(unitNet[s.unit]) + " MW")).join("");
       const hasOther = t.items.some((s) => !LIVE_UNITS.includes(s.unit));
+      const abbr = [/E\/S/.test(t.items.map((s) => s.name).join()) ? "E/S＝超高壓變電所" : "", /D\/S/.test(t.items.map((s) => s.name).join()) ? "D/S＝配電變電所" : ""].filter(Boolean).join("、");
       return `<b>台電自有｜${t.c}（${t.items.length} 站）</b>` +
-        t.items.map((s) => row(`${short(s.name)}（${s.town}）`, fmt(s.capacityKW / 1000, 2) + " MW")).join("") +
+        `<div class="stn-grid">` + t.items.map((s) => stnCells(s) + `<span class="v">${fmt(s.capacityKW / 1000, 2)} MW</span>`).join("") + `</div>` +
         row("合計", fmt(t.size, 2) + " MW") + (live ? `<div class="tip-sep"></div>${live}` : "") +
         `<div class="tip-foot">數值為 2024 場址資料裝置容量；位置以縣市統整（概略）` +
-        (hasOther ? `<br>其餘發電站的發電功率含在「其它台電自有」（全台合計 ${fmt(otherOwn)} MW）` : "") + `</div>`;
+        (hasOther ? `<br>其餘發電站的發電功率含在「其它台電自有」<span style="white-space:nowrap">（全台合計 ${fmt(otherOwn)} MW）</span>` : "") +
+        (abbr ? `<br>${abbr}` : "") + `</div>`;
     };
     const mk = mg.selectAll("g.mk").data(nodes).join("g").attr("class", (t) => "mk " + t.kind).attr("transform", (t) => `translate(${t.x},${t.y})`)
       .on("mousemove", (evt, t) => showTip(evt, tipHtml(t))).on("mouseleave", hideTip);
