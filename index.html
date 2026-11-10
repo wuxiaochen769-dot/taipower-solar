@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109o">
+<link rel="stylesheet" href="style.css?v=20261110b">
 </head>
 <body>
 <header class="top">
@@ -126,16 +126,16 @@
   <section class="panel" aria-labelledby="h-map">
     <div class="panel-head">
       <h2 id="h-map">台電自有發電站位置與全台即時發電功率</h2>
-      <p class="hint">地圖上為台電自有太陽光電發電站；大型、小型案場位置未公開，列在右側</p>
+      <p class="hint">地圖可切換台電自有／大型案場；小型案場為估算整併，無個別位置</p>
     </div>
     <div class="map-grid">
       <div class="map-box">
-        <svg id="map" role="img" aria-label="台灣地圖與台電自有太陽光電發電站位置"></svg>
+        <div class="map-wrap"><svg id="map" role="img" aria-label="台灣地圖：台電自有發電站與大型案場位置"></svg><div class="layer-sw" id="layerSw" role="group" aria-label="地圖顯示"></div></div>
         <div class="map-legend" id="mapLegend"></div>
       </div>
       <aside class="side">
         <div class="kpis" id="kpis"></div>
-        <h3>大型案場（位置未公開）</h3>
+        <h3>大型案場</h3>
         <ol class="bars" id="purchasedBars"></ol>
         <p class="note">小型案場＝台電資料的「其它購電太陽能」，為台電依取樣比例估算的整併項目（台電註7），無法拆成個別案場，故不列入長條。</p>
       </aside>
@@ -282,8 +282,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261109o"></script>
-<script src="app.js?v=20261109o"></script>
+<script src="config.js?v=20261110b"></script>
+<script src="app.js?v=20261110b"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

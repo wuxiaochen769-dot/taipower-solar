@@ -275,3 +275,17 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .reg-sum .reg-note { display: block; font-size: 14.375px; color: var(--muted); margin-top: 2px; }
 .stat-table .dn { color: var(--warn); } .stat-table .up { color: var(--ok); }
 #h-reg .est-tag { font-size: 13.75px; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: 8px; vertical-align: 2px; }
+
+/* 2026-11-10 示意：地圖圖層切換＋大型案場（縣市統整） */
+.map-wrap { position: relative; }
+.layer-sw { position: absolute; left: 0; bottom: 6px; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
+.layer-sw button { font: inherit; font-size: 14.375px; padding: 4px 10px; border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--ink2); cursor: pointer; }
+.layer-sw button:last-child { border-right: 0; }
+.layer-sw button[aria-pressed="true"] { background: var(--tab, var(--accent)); color: var(--card); }
+.pur-dot { fill: var(--s-site); fill-opacity: .9; stroke: var(--card); stroke-width: 1.5; cursor: help; }
+.pur-n { font-size: 11.5px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+.bars .loc { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
+.bars .loc.none { color: var(--warn); opacity: .85; }
+.kpi .lbl-note { font-size: 12.5px; color: var(--muted); margin-left: 4px; }
+#kpis .kpi.third .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .layer-sw button { font-size: 13.75px; padding: 4px 8px; } }

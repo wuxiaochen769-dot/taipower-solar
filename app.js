@@ -113,7 +113,7 @@
       (DEV ? k("資料一致性（今日，開發者檢視）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") : "") +
       k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW").replace('class="kpi"', DEV ? 'class="kpi"' : 'class="kpi wide"') +
       [k("台電自有", fmt(ownMW), "MW", "var(--s-own)"), k("大型案場", fmt(bigMW), "MW", "var(--s-site)"),
-        k("小型案場（估算）", fmt(smallMW), "MW", "var(--s-est)")].map((s) => s.replace('class="kpi"', 'class="kpi third"')).join("");
+        k('小型案場<span class="lbl-note">估算</span>', fmt(smallMW), "MW", "var(--s-est)")].map((s) => s.replace('class="kpi"', 'class="kpi third"')).join("");
   }
 
   // ───── 三類案場合計與占比 ─────
@@ -132,7 +132,22 @@
   }
 
   // ───── 地圖 ─────
+  // ───── 大型案場位置（2026-11-10 示意）：只列公開資料可核對者；地圖以「縣市」統整 ─────
+  // 值＝[縣市, 鄉鎮]；經緯度為鄉鎮公所附近（概略），縣市標記放在該縣市案場的平均位置
+  const PUR_SITE = {
+    志光光: ["臺南市", "七股區", 120.1374, 23.1407], 天衝光: ["臺南市", "七股區", 120.1374, 23.1407], 天篷光: ["臺南市", "七股區", 120.1374, 23.1407],
+    星崴光: ["臺南市", "七股區", 120.1374, 23.1407], 新和光: ["臺南市", "將軍區", 120.1569, 23.1993],
+    崙尾光: ["彰化縣", "鹿港鎮", 120.4353, 24.0566], 星崙光: ["彰化縣", "鹿港鎮", 120.4353, 24.0566], 永堯光: ["彰化縣", "大城鄉", 120.3207, 23.8527],
+    生利光: ["屏東縣", "枋寮鄉", 120.5934, 22.3668], 寶興光: ["屏東縣", "枋寮鄉", 120.5934, 22.3668],
+    碩力光: ["雲林縣", "臺西鄉", 120.1960, 23.7020], 向陽光: ["嘉義縣", "義竹鄉", 120.2428, 23.3362],
+  };
+  const LAYERS = [["own", "台電自有"], ["pur", "大型案場"], ["all", "全部"]];
+  let mapLayer = "own";
+  try { mapLayer = localStorage.getItem("mapLayer") || "own"; } catch (e) {}
+  let lastMapData = null;
+
   function renderMap(d) {
+    lastMapData = d;
     const svg = d3.select("#map");
     const W = svg.node().clientWidth || 600, H = Math.round(W * 1.18);
     svg.attr("viewBox", `0 0 ${W} ${H}`).selectAll("*").remove();
@@ -168,7 +183,8 @@
       return pj.proj([s.lon, s.lat]);
     };
     const data = sites.stations.slice().sort((a, b) => b.capacityKW - a.capacityKW);
-    const g = svg.append("g");
+    const showOwn = mapLayer !== "pur", showPur = mapLayer !== "own";
+    const g = svg.append("g").style("display", showOwn ? null : "none");
     g.selectAll("circle").data(data).join("circle")
       .attr("class", (s) => "dot" + (LIVE_UNITS.includes(s.unit) ? " live" : ""))
       .attr("cx", (s) => pos(s)[0]).attr("cy", (s) => pos(s)[1]).attr("r", (s) => r(s.capacityKW))
@@ -184,10 +200,45 @@
       .attr("class", "dot-lbl").attr("x", (s) => pos(s)[0] + r(s.capacityKW) + 5).attr("y", (s) => pos(s)[1] + 4)
       .text((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`);
 
+    // 大型案場：每個縣市一個標記；大小只在小範圍內變化，避免看起來輕重懸殊
+    const byC = {};
+    d.units.filter((u) => PUR_SITE[u.name]).forEach((u) => { const c = PUR_SITE[u.name][0]; (byC[c] = byC[c] || []).push(u); });
+    const cdata = Object.entries(byC).map(([c, us]) => ({
+      c, us, sum: d3.sum(us, (u) => u.net || 0),
+      xy: proj([d3.mean(us, (u) => PUR_SITE[u.name][2]), d3.mean(us, (u) => PUR_SITE[u.name][3])]),
+    }));
+    const rc = d3.scaleSqrt().domain([0, d3.max(cdata, (t) => t.sum) || 1]).range([9, 13]);
+    // 「全部」時，與台電自有大圓（彰濱光、南鹽光）重疊者往海側（左）移開
+    if (showOwn) cdata.forEach((t) => {
+      data.filter((s) => LIVE_UNITS.includes(s.unit)).forEach((s) => {
+        const [sx, sy] = pos(s), rr = r(s.capacityKW) + rc(t.sum) + 3;
+        if (Math.hypot(t.xy[0] - sx, t.xy[1] - sy) < rr) t.xy = [sx - rr, t.xy[1] + (t.xy[1] >= sy ? 4 : -4)];
+      });
+    });
+    // 標籤避免上下重疊：依 y 排序，太近就往下推
+    let lastY = -1e9;
+    cdata.slice().sort((a, b) => a.xy[1] - b.xy[1]).forEach((t) => { t.ly = Math.max(t.xy[1] + 4, lastY + 17); lastY = t.ly; });
+    const pg = svg.append("g").style("display", showPur ? null : "none");
+    pg.selectAll("circle").data(cdata).join("circle").attr("class", "pur-dot")
+      .attr("cx", (t) => t.xy[0]).attr("cy", (t) => t.xy[1]).attr("r", (t) => rc(t.sum))
+      .on("mousemove", (evt, t) => showTip(evt, `<b>大型案場｜${t.c}</b>` +
+        t.us.sort((a, b) => (b.net || 0) - (a.net || 0)).map((u) => row(`${u.name}（${PUR_SITE[u.name][1]}）`, fmt(u.net) + " MW")).join("") +
+        row("合計", fmt(t.sum) + " MW") + `<div class="small muted" style="margin-top:4px">位置以縣市統整（概略）</div>`))
+      .on("mouseleave", hideTip);
+    pg.selectAll("text.pur-n").data(cdata).join("text").attr("class", "pur-n").attr("x", (t) => t.xy[0]).attr("y", (t) => t.xy[1] + 4).text((t) => t.us.length);
+    if (mapLayer === "pur") pg.selectAll("text.pur-lbl").data(cdata).join("text").attr("class", "dot-lbl pur-lbl")
+      .attr("x", (t) => t.xy[0] + rc(t.sum) + 5).attr("y", (t) => t.ly).text((t) => `${t.c.slice(0, 2)} ${fmt(t.sum)} MW`);
+    const nPur = d.units.filter((u) => u.category === "購電" && u.name !== "其它購電太陽能").length, nOn = d3.sum(cdata, (t) => t.us.length);
     $("mapLegend").innerHTML =
-      `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝2024 場址資料的裝置容量）</span>` +
-      `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別發電功率</span>` +
-      `<span>位置為村里或鄉鎮中心點（概略）</span>`;
+      (showOwn ? `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝2024 場址資料的裝置容量）</span>` +
+        `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別發電功率</span>` : "") +
+      (showPur ? `<span><i style="background:var(--s-site)"></i>大型案場（依縣市統整，數字＝場數）；另 ${nPur - nOn} 場查無場址資料</span>` : "") +
+      `<span>位置為概略位置，非實際場址</span>`;
+    $("layerSw").innerHTML = LAYERS.map(([k, t]) => `<button type="button" data-k="${k}" aria-pressed="${k === mapLayer}">${t}</button>`).join("");
+    $("layerSw").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+      mapLayer = b.dataset.k; try { localStorage.setItem("mapLayer", mapLayer); } catch (e) {}
+      renderMap(lastMapData);
+    }));
   }
 
   function renderPurchased(pur) {
@@ -196,7 +247,8 @@
     $("purchasedBars").innerHTML =
       list.map((u) => {
         const tag = shortStatus(u.status) || (u.capacity == null ? "試運轉" : "");
-        return `<li title="${u.name}${tag ? "（" + tag + "）" : ""}"><span>${u.name}${tag ? ` <span class="tag">${tag}</span>` : ""}</span><span class="track"><span class="fill" style="width:${((u.net || 0) / max) * 100}%;display:block"></span></span><span class="num">${fmt(u.net)} MW</span></li>`;
+        const loc = PUR_SITE[u.name] ? `<span class="loc">${PUR_SITE[u.name][0]}${PUR_SITE[u.name][1]}</span>` : `<span class="loc none">查無場址資料</span>`;
+        return `<li title="${u.name}${tag ? "（" + tag + "）" : ""}"><span>${u.name}${tag ? ` <span class="tag">${tag}</span>` : ""}${loc}</span><span class="track"><span class="fill" style="width:${((u.net || 0) / max) * 100}%;display:block"></span></span><span class="num">${fmt(u.net)} MW</span></li>`;
       }).join("");
   }
 
