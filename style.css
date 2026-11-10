@@ -87,9 +87,10 @@ table.units { width: 100%; border-collapse: collapse; font-size: 16.875px; }
 .units td.n { text-align: right; font-variant-numeric: tabular-nums; }
 .units .pill { font-size: 13.75px; padding: 1px 7px; border-radius: 9px; background: var(--grid); color: var(--ink2); white-space: nowrap; }
 .foot { color: var(--muted); font-size: 15.625px; padding: 6px 0 30px; }
-.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 15.625px; box-shadow: 0 4px 16px rgba(0,0,0,.15); max-width: 280px; }
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 15.625px; box-shadow: 0 4px 16px rgba(0,0,0,.15); max-width: min(440px, calc(100vw - 16px)); }
 .tip b { display: block; margin-bottom: 2px; }
-.tip .row { display: flex; justify-content: space-between; gap: 12px; }
+.tip .row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
+.tip .row span { white-space: nowrap; } /* 2026-11-10：資訊與單位不換行，一行一個資訊 */
 .tip .row span:last-child { font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) {
   .map-grid, .day-grid, .tables { grid-template-columns: minmax(0, 1fr); }
@@ -282,10 +283,18 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .layer-sw button { font: inherit; font-size: 14.375px; padding: 4px 10px; border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--ink2); cursor: pointer; }
 .layer-sw button:last-child { border-right: 0; }
 .layer-sw button[aria-pressed="true"] { background: var(--tab, var(--accent)); color: var(--card); }
-.pur-dot { fill: var(--s-site); fill-opacity: .9; stroke: var(--card); stroke-width: 1.5; cursor: help; }
-.pur-n { font-size: 11.5px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
 .bars .loc { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
 .bars .loc.none { color: var(--warn); opacity: .85; }
 .kpi .lbl-note { font-size: 12.5px; color: var(--muted); margin-left: 4px; }
 #kpis .kpi.third .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .layer-sw button { font-size: 13.75px; padding: 4px 8px; } }
+/* 2026-11-10：台電自有與大型案場統一標記格式 */
+.mk { cursor: help; }
+.mk circle { fill-opacity: .92; stroke: var(--card); stroke-width: 1.5; }
+.mk.own circle { fill: var(--s-own); } .mk.pur circle { fill: var(--s-site); }
+.mk-n { font-size: 11.5px; font-weight: 700; fill: #fff; text-anchor: middle; pointer-events: none; }
+.lead { stroke-width: 1.1; opacity: .8; } .lead.own { stroke: var(--s-own); } .lead.pur { stroke: var(--s-site); }
+.tip .tip-sep { border-top: 1px solid var(--line); margin: 4px 0; }
+.tip .tip-foot { margin-top: 4px; font-size: 13.75px; color: var(--muted); }
+.map-legend { flex-direction: column; gap: 4px; }
+.map-legend .off { opacity: .35; }

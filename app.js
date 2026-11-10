@@ -177,63 +177,65 @@
 
     const unitNet = Object.fromEntries(d.units.map((u) => [u.name, u.net]));
     const otherOwn = unitNet["其它台電自有"];
-    const r = d3.scaleSqrt().domain([0, d3.max(sites.stations, (s) => s.capacityKW)]).range([3, 17]);
-    const pos = (s) => {
-      const pj = projs.find((p) => p.test && p.test.test(s.county)) || projs[0];
-      return pj.proj([s.lon, s.lat]);
+    const pos = (county, lon, lat) => {
+      const pj = projs.find((p) => p.test && p.test.test(county)) || projs[0];
+      return pj.proj([lon, lat]);
     };
-    const data = sites.stations.slice().sort((a, b) => b.capacityKW - a.capacityKW);
+    const short = (n) => n.replace("太陽光電發電站", "");
     const showOwn = mapLayer !== "pur", showPur = mapLayer !== "own";
-    const g = svg.append("g").style("display", showOwn ? null : "none");
-    g.selectAll("circle").data(data).join("circle")
-      .attr("class", (s) => "dot" + (LIVE_UNITS.includes(s.unit) ? " live" : ""))
-      .attr("cx", (s) => pos(s)[0]).attr("cy", (s) => pos(s)[1]).attr("r", (s) => r(s.capacityKW))
-      .style("fill", "var(--s-own)").style("fill-opacity", (s) => (LIVE_UNITS.includes(s.unit) ? 0.95 : 0.7))
-      .on("mousemove", (evt, s) => {
-        const live = LIVE_UNITS.includes(s.unit)
-          ? row("發電功率", fmt(unitNet[s.unit]) + " MW")
-          : row("發電功率", "含在「其它台電自有」") + row("其它台電自有合計", fmt(otherOwn) + " MW");
-        showTip(evt, `<b>${s.name}</b>${row("位置", s.county + s.town + (s.village || ""))}${row("裝置容量（2024 場址資料）", fmt(s.capacityKW / 1000, 2) + " MW")}${s.trialKW ? row("其中試運轉", fmt(s.trialKW / 1000, 2) + " MW") : ""}${live}${row("場址數", s.sites)}${row("定位精度", s.precision)}`);
-      })
-      .on("mouseleave", hideTip);
-    g.selectAll("text").data(data.filter((s) => LIVE_UNITS.includes(s.unit))).join("text")
-      .attr("class", "dot-lbl").attr("x", (s) => pos(s)[0] + r(s.capacityKW) + 5).attr("y", (s) => pos(s)[1] + 4)
-      .text((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`);
 
-    // 大型案場：每個縣市一個標記；大小只在小範圍內變化，避免看起來輕重懸殊
-    const byC = {};
-    d.units.filter((u) => PUR_SITE[u.name]).forEach((u) => { const c = PUR_SITE[u.name][0]; (byC[c] = byC[c] || []).push(u); });
-    const cdata = Object.entries(byC).map(([c, us]) => ({
-      c, us, sum: d3.sum(us, (u) => u.net || 0),
-      xy: proj([d3.mean(us, (u) => PUR_SITE[u.name][2]), d3.mean(us, (u) => PUR_SITE[u.name][3])]),
+    // 台電自有與大型案場統一格式（2026-11-10）：每個縣市一個圓，數字＝站／場數，大小只在小範圍內變化
+    // 台電自有：大小依 2024 場址資料裝置容量；大型案場：大小依即時發電功率
+    const ownC = d3.groups(sites.stations, (s) => s.county).map(([c, ss]) => ({
+      kind: "own", c, items: ss.slice().sort((a, b) => b.capacityKW - a.capacityKW), size: d3.sum(ss, (s) => s.capacityKW) / 1000,
+      live: ss.filter((s) => LIVE_UNITS.includes(s.unit)),
+      at: pos(c, d3.mean(ss, (s) => s.lon), d3.mean(ss, (s) => s.lat)),
     }));
-    const rc = d3.scaleSqrt().domain([0, d3.max(cdata, (t) => t.sum) || 1]).range([9, 13]);
-    // 「全部」時，與台電自有大圓（彰濱光、南鹽光）重疊者往海側（左）移開
-    if (showOwn) cdata.forEach((t) => {
-      data.filter((s) => LIVE_UNITS.includes(s.unit)).forEach((s) => {
-        const [sx, sy] = pos(s), rr = r(s.capacityKW) + rc(t.sum) + 3;
-        if (Math.hypot(t.xy[0] - sx, t.xy[1] - sy) < rr) t.xy = [sx - rr, t.xy[1] + (t.xy[1] >= sy ? 4 : -4)];
-      });
-    });
-    // 標籤避免上下重疊：依 y 排序，太近就往下推
+    const purC = d3.groups(d.units.filter((u) => PUR_SITE[u.name]), (u) => PUR_SITE[u.name][0]).map(([c, us]) => ({
+      kind: "pur", c, items: us.slice().sort((a, b) => (b.net || 0) - (a.net || 0)), size: d3.sum(us, (u) => u.net || 0),
+      at: pos(c, d3.mean(us, (u) => PUR_SITE[u.name][2]), d3.mean(us, (u) => PUR_SITE[u.name][3])),
+    }));
+    const rOwn = d3.scaleSqrt().domain([0, d3.max(ownC, (t) => t.size) || 1]).range([9, 13]);
+    const rPur = d3.scaleSqrt().domain([0, d3.max(purC, (t) => t.size) || 1]).range([9, 13]);
+    const nodes = [].concat(showOwn ? ownC : [], showPur ? purC : []);
+    nodes.forEach((t) => { t.r = t.kind === "own" ? rOwn(t.size) : rPur(t.size); t.x = t.at[0]; t.y = t.at[1]; });
+    // 標記互相重疊時自動推開（固定次數計算，結果每次相同），偏移較大者以細線指回原位置
+    const sim = d3.forceSimulation(nodes).force("x", d3.forceX((t) => t.at[0]).strength(0.4)).force("y", d3.forceY((t) => t.at[1]).strength(0.4))
+      .force("collide", d3.forceCollide((t) => t.r + 2).iterations(3)).stop();
+    for (let i = 0; i < 160; i++) sim.tick();
+
+    const mg = svg.append("g");
+    mg.selectAll("line").data(nodes.filter((t) => Math.hypot(t.x - t.at[0], t.y - t.at[1]) > t.r * 0.6)).join("line").attr("class", (t) => "lead " + t.kind)
+      .attr("x1", (t) => t.at[0]).attr("y1", (t) => t.at[1]).attr("x2", (t) => t.x).attr("y2", (t) => t.y);
+    const tipHtml = (t) => {
+      if (t.kind === "pur") return `<b>大型案場｜${t.c}（${t.items.length} 場）</b>` +
+        t.items.map((u) => row(`${u.name}（${PUR_SITE[u.name][1]}）`, fmt(u.net) + " MW")).join("") +
+        row("合計", fmt(t.size) + " MW") + `<div class="tip-foot">數值為即時發電功率；位置以縣市統整（概略）</div>`;
+      const live = t.live.map((s) => row(`${s.unit} 即時發電功率`, fmt(unitNet[s.unit]) + " MW")).join("");
+      const hasOther = t.items.some((s) => !LIVE_UNITS.includes(s.unit));
+      return `<b>台電自有｜${t.c}（${t.items.length} 站）</b>` +
+        t.items.map((s) => row(`${short(s.name)}（${s.town}）`, fmt(s.capacityKW / 1000, 2) + " MW")).join("") +
+        row("合計", fmt(t.size, 2) + " MW") + (live ? `<div class="tip-sep"></div>${live}` : "") +
+        `<div class="tip-foot">數值為 2024 場址資料裝置容量；位置以縣市統整（概略）` +
+        (hasOther ? `<br>其餘發電站的發電功率含在「其它台電自有」（全台合計 ${fmt(otherOwn)} MW）` : "") + `</div>`;
+    };
+    const mk = mg.selectAll("g.mk").data(nodes).join("g").attr("class", (t) => "mk " + t.kind).attr("transform", (t) => `translate(${t.x},${t.y})`)
+      .on("mousemove", (evt, t) => showTip(evt, tipHtml(t))).on("mouseleave", hideTip);
+    mk.append("circle").attr("r", (t) => t.r);
+    mk.append("text").attr("class", "mk-n").attr("y", 4).text((t) => t.items.length);
+    // 標籤：只在單一圖層時顯示即時發電功率（台電自有僅彰濱光、南鹽光有個別數值）
+    const lbls = mapLayer === "pur" ? purC.map((t) => ({ t, s: `${t.c.slice(0, 2)} ${fmt(t.size)} MW` }))
+      : mapLayer === "own" ? ownC.filter((t) => t.live.length).map((t) => ({ t, s: t.live.map((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`).join("、") })) : [];
     let lastY = -1e9;
-    cdata.slice().sort((a, b) => a.xy[1] - b.xy[1]).forEach((t) => { t.ly = Math.max(t.xy[1] + 4, lastY + 17); lastY = t.ly; });
-    const pg = svg.append("g").style("display", showPur ? null : "none");
-    pg.selectAll("circle").data(cdata).join("circle").attr("class", "pur-dot")
-      .attr("cx", (t) => t.xy[0]).attr("cy", (t) => t.xy[1]).attr("r", (t) => rc(t.sum))
-      .on("mousemove", (evt, t) => showTip(evt, `<b>大型案場｜${t.c}</b>` +
-        t.us.sort((a, b) => (b.net || 0) - (a.net || 0)).map((u) => row(`${u.name}（${PUR_SITE[u.name][1]}）`, fmt(u.net) + " MW")).join("") +
-        row("合計", fmt(t.sum) + " MW") + `<div class="small muted" style="margin-top:4px">位置以縣市統整（概略）</div>`))
-      .on("mouseleave", hideTip);
-    pg.selectAll("text.pur-n").data(cdata).join("text").attr("class", "pur-n").attr("x", (t) => t.xy[0]).attr("y", (t) => t.xy[1] + 4).text((t) => t.us.length);
-    if (mapLayer === "pur") pg.selectAll("text.pur-lbl").data(cdata).join("text").attr("class", "dot-lbl pur-lbl")
-      .attr("x", (t) => t.xy[0] + rc(t.sum) + 5).attr("y", (t) => t.ly).text((t) => `${t.c.slice(0, 2)} ${fmt(t.sum)} MW`);
-    const nPur = d.units.filter((u) => u.category === "購電" && u.name !== "其它購電太陽能").length, nOn = d3.sum(cdata, (t) => t.us.length);
+    lbls.sort((a, b) => a.t.y - b.t.y).forEach((l) => { l.y = Math.max(l.t.y + 4, lastY + 17); lastY = l.y; });
+    mg.selectAll("text.dot-lbl").data(lbls).join("text").attr("class", "dot-lbl").attr("x", (l) => l.t.x + l.t.r + 5).attr("y", (l) => l.y).text((l) => l.s);
+
+    const nPur = d.units.filter((u) => u.category === "購電" && u.name !== "其它購電太陽能").length, nOn = d3.sum(purC, (t) => t.items.length);
+    // 圖例固定三列（未顯示的圖層變淡），切換時版面高度不變
     $("mapLegend").innerHTML =
-      (showOwn ? `<span><i style="background:var(--s-own)"></i>台電自有發電站（圓的大小＝2024 場址資料的裝置容量）</span>` +
-        `<span><i style="background:var(--s-own);box-shadow:0 0 0 2px var(--ink)"></i>可顯示個別發電功率</span>` : "") +
-      (showPur ? `<span><i style="background:var(--s-site)"></i>大型案場（依縣市統整，數字＝場數）；另 ${nPur - nOn} 場查無場址資料</span>` : "") +
-      `<span>位置為概略位置，非實際場址</span>`;
+      `<span class="${showOwn ? "" : "off"}"><i style="background:var(--s-own)"></i>台電自有：數字＝站數，大小＝裝置容量</span>` +
+      `<span class="${showPur ? "" : "off"}"><i style="background:var(--s-site)"></i>大型案場：數字＝場數，大小＝發電功率（另 ${nPur - nOn} 場查無場址）</span>` +
+      `<span>依縣市統整，位置為概略；標籤為即時發電功率</span>`;
     $("layerSw").innerHTML = LAYERS.map(([k, t]) => `<button type="button" data-k="${k}" aria-pressed="${k === mapLayer}">${t}</button>`).join("");
     $("layerSw").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       mapLayer = b.dataset.k; try { localStorage.setItem("mapLayer", mapLayer); } catch (e) {}
