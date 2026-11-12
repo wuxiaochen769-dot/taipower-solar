@@ -4,5 +4,6 @@ window.SOLAR_CONFIG = {
   LIVE_URL: "https://script.google.com/macros/s/AKfycbwa7Z_PlOfS4uqqXm898XVrUzRDxgZkoRXqqwJ0ztqplA7EEIQSN5OjSvZybECaV_3r/exec",                 // 例如 "https://script.google.com/macros/s/xxxxxxxx/exec"
   REFRESH_MINUTES: 5,           // 幾分鐘重新抓一次即時資料
   STALE_MINUTES: 40,            // 資料時間超過幾分鐘未更新就顯示提醒
-  STATS_START: "2026-10-13"     // 第三分頁統計的起始日（系統完整運作的第一天）
+  STATS_START: "2026-10-13",    // 第三分頁統計的起始日（系統完整運作的第一天）
+  DEV_HASH: "329bc794c83d7d54c50836ac93aa690eb2cde9dbd164e28e528a25c5a0522a0f"  // 開發者通關碼的雜湊值（用 C:\\solar\\產生開發者雜湊.bat 產生）；空白＝停用開發者登入
 };

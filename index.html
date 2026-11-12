@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261110j">
+<link rel="stylesheet" href="style.css?v=20261112a">
 </head>
 <body>
 <header class="top">
@@ -147,6 +147,7 @@
     <div class="panel-head">
       <h2 id="h-day">今日發電功率變化<span class="dev-only">與資料一致性</span></h2>
       <p class="hint">06:00–18:00 每 10 分鐘一筆，台電公布的發電功率（MW）；台電資料約延遲 10～15 分鐘</p>
+      <button type="button" class="dev-toggle dev-auth-only" id="devToggle" aria-pressed="false">顯示資料一致性</button>
     </div>
     <div class="day-grid">
       <figure class="chart-card wide">
@@ -184,6 +185,15 @@
     <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺<a href="https://data.gov.tw/dataset/17141" target="_blank" rel="noopener">「台灣電力公司再生能源各場址資料」</a>（2024 年版，裝置容量可能已變動），經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
     <p>彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</p>
     <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。<span class="dev-only">資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</span></p>
+    <p class="dev-login" id="devLogin">
+      <button type="button" class="linkish" id="devLoginOpen">通關碼</button>
+      <span class="dev-login-form" id="devLoginForm" hidden>
+        <input type="password" id="devPass" autocomplete="current-password" placeholder="開發者通關碼" aria-label="開發者通關碼">
+        <button type="button" id="devPassOk">確認</button>
+        <span class="dev-login-msg" id="devLoginMsg" role="status"></span>
+      </span>
+      <span class="dev-login-on" hidden>開發者已登入｜<button type="button" class="linkish" id="devLogout">登出</button></span>
+    </p>
   </footer>
 </main>
 
@@ -282,8 +292,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261110j"></script>
-<script src="app.js?v=20261110j"></script>
+<script src="config.js?v=20261112a"></script>
+<script src="app.js?v=20261112a"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

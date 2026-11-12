@@ -304,3 +304,18 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .tip .stn-grid span { white-space: nowrap; }
 .tip .stn { font-weight: 700; } .tip .stn-sfx { color: var(--muted); } .tip .stn-grid .v { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .tip .stn-grid { grid-template-columns: minmax(3em, max-content) max-content 1fr; column-gap: .8em; } .tip .stn-grid .stn { white-space: normal; } }
+
+/* 顯示／隱藏資料一致性按鈕（2026-11-12） */
+.dev-toggle { margin-left: auto; align-self: center; font: inherit; font-size: 14px; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--line, #c9ced6); background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.dev-toggle:hover { color: inherit; border-color: currentColor; }
+.dev-toggle[aria-pressed="true"] { background: var(--muted); color: var(--bg, #fff); border-color: var(--muted); }
+html:not(.dev-auth) .dev-auth-only { display: none !important; }
+/* 頁尾開發者登入：不顯眼的小字 */
+.dev-login { font-size: 13px; margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.linkish { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; }
+.dev-login-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dev-login-form[hidden], .dev-login-on[hidden], .linkish[hidden] { display: none; }
+.dev-login input { font: inherit; font-size: 14px; padding: 3px 8px; width: 11em; border: 1px solid var(--land-line); border-radius: 6px; background: var(--card); color: var(--ink); }
+.dev-login-form > button { font: inherit; font-size: 13px; padding: 3px 10px; border: 1px solid var(--land-line); border-radius: 6px; background: transparent; color: var(--ink2); cursor: pointer; }
+.dev-login-msg { color: var(--muted); }

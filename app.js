@@ -4,17 +4,64 @@
 (function () {
   "use strict";
   const CFG = window.SOLAR_CONFIG || {};
-  // 開發者檢視：網址加 ?dev=1 才顯示「資料一致性」等檢核內容（一般民眾看不到；不是密碼保護）
-  // 開過一次 ?dev=1 後，這台電腦的這個瀏覽器會記住（之後用一般網址也是開發者檢視）；?dev=0 取消
-  const DEV = (() => {
-    const q = new URLSearchParams(location.search).get("dev");
-    try {
-      if (q === "1") localStorage.setItem("solarDev", "1");
-      if (q === "0") localStorage.removeItem("solarDev");
-      return q === "1" || (q !== "0" && localStorage.getItem("solarDev") === "1");
-    } catch (e) { return q === "1"; }
-  })();
+  // 開發者檢視（2026-11-12）：頁尾「開發者」輸入通關碼後，才會出現「顯示／隱藏資料一致性」按鈕
+  //   程式只存通關碼的雜湊值（PBKDF2-SHA256），看原始碼看不到原文；屬一般訪客層級的阻擋，不是嚴格的帳號保護
+  //   登入與顯示狀態都記在這個瀏覽器；?dev=0 可取消顯示
+  const DEV_HASH = (window.SOLAR_CONFIG && window.SOLAR_CONFIG.DEV_HASH) || "";
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} } };
+  const DEV_AUTH = !!DEV_HASH && store.get("solarDevAuth") === DEV_HASH;
+  if (!DEV_AUTH) store.set("solarDev", null);
+  if (new URLSearchParams(location.search).get("dev") === "0") store.set("solarDev", null);
+  const DEV = DEV_AUTH && store.get("solarDev") === "1";
+  document.documentElement.classList.toggle("dev-auth", DEV_AUTH);
   document.documentElement.classList.toggle("dev", DEV);
+  // 「顯示／隱藏資料一致性」按鈕（僅開發者）：重新載入頁面讓圖表依新版面重畫，並捲回按鈕位置
+  const reloadAt = (anchor) => {
+    try { sessionStorage.setItem("solarDevScroll", anchor); } catch (e) {}
+    const u = new URL(location.href); u.searchParams.delete("dev"); u.hash = "today";
+    location.replace(u.toString()); if (u.toString() === location.href) location.reload();
+  };
+  (() => {
+    const u = new URL(location.href);
+    if (u.searchParams.has("dev")) { u.searchParams.delete("dev"); history.replaceState(null, "", u.toString()); }
+    try {
+      const a = sessionStorage.getItem("solarDevScroll");
+      if (a) { sessionStorage.removeItem("solarDevScroll"); window.addEventListener("load", () => setTimeout(() => { const el = document.getElementById(a); if (el) el.scrollIntoView({ block: "start" }); }, 300)); }
+    } catch (e) {}
+    const b = document.getElementById("devToggle");
+    if (b) {
+      b.textContent = DEV ? "隱藏資料一致性" : "顯示資料一致性";
+      b.setAttribute("aria-pressed", String(DEV));
+      b.addEventListener("click", () => { store.set("solarDev", DEV ? null : "1"); reloadAt("devToggle"); });
+    }
+    // 頁尾「開發者」登入／登出
+    const box = document.getElementById("devLogin");
+    if (!box) return;
+    if (!DEV_HASH) { box.hidden = true; return; }
+    const $ = (id) => document.getElementById(id);
+    box.querySelector(".dev-login-on").hidden = !DEV_AUTH;
+    $("devLoginOpen").hidden = DEV_AUTH;
+    $("devLoginOpen").addEventListener("click", () => { $("devLoginForm").hidden = false; $("devLoginOpen").hidden = true; $("devPass").focus(); });
+    const hashOf = async (pass) => {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveBits"]);
+      const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: enc.encode("taipower-solar-dev"), iterations: 100000 }, key, 256);
+      return [...new Uint8Array(bits)].map((x) => x.toString(16).padStart(2, "0")).join("");
+    };
+    const tryLogin = async () => {
+      const msg = $("devLoginMsg"), pass = $("devPass").value;
+      if (!pass) return;
+      msg.textContent = "確認中…";
+      try {
+        if ((await hashOf(pass)) === DEV_HASH) { store.set("solarDevAuth", DEV_HASH); store.set("solarDev", "1"); reloadAt("devToggle"); }
+        else { msg.textContent = "通關碼不正確"; $("devPass").select(); }
+      } catch (e) { msg.textContent = "此瀏覽器不支援，請改用 Chrome 或 Edge"; }
+    };
+    $("devPassOk").addEventListener("click", tryLogin);
+    $("devPass").addEventListener("keydown", (e) => { if (e.key === "Enter") tryLogin(); });
+    $("devLogout").addEventListener("click", () => { store.set("solarDevAuth", null); store.set("solarDev", null); reloadAt("devLogin"); });
+  })();
   const LIVE_UNITS = ["彰濱光", "南鹽光"]; // 可一對一對應到發電站的機組
   const GROUPS = [
     { key: "purEst", name: "小型案場（其它購電太陽能，估算）", color: "var(--s-est)" },
