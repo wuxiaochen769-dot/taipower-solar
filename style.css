@@ -298,7 +298,7 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .tip .tip-sep { border-top: 1px solid var(--line); margin: 4px 0; }
 .tip .tip-foot { margin-top: 4px; font-size: 13.75px; color: var(--muted); }
 .map-legend { flex-direction: column; gap: 4px; }
-.map-legend .off { opacity: .35; }
+.map-legend .off { opacity: 1; } /* 2026-11-12：未顯示的圖層圖例維持原有配色，不再變淡 */
 @media (max-width: 640px) { .tip { font-size: 14px; padding: 7px 9px; } .tip .tip-foot { font-size: 12.5px; } }
 .tip .stn-grid { display: grid; grid-template-columns: max-content max-content 1fr; column-gap: 1em; align-items: baseline; }
 .tip .stn-grid span { white-space: nowrap; }
