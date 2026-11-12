@@ -319,3 +319,8 @@ html:not(.dev-auth) .dev-auth-only { display: none !important; }
 .dev-login input { font: inherit; font-size: 14px; padding: 3px 8px; width: 11em; border: 1px solid var(--land-line); border-radius: 6px; background: var(--card); color: var(--ink); }
 .dev-login-form > button { font: inherit; font-size: 13px; padding: 3px 10px; border: 1px solid var(--land-line); border-radius: 6px; background: transparent; color: var(--ink2); cursor: pointer; }
 .dev-login-msg { color: var(--muted); }
+/* 地圖切換按鈕：名稱＋代表數值兩行（2026-11-12） */
+.layer-sw button { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.25; }
+.layer-sw .ls-v { font-size: 11.5px; opacity: .8; white-space: nowrap; }
+@media (max-width: 640px) { #mapLegend { min-height: 154px; } } /* 切換圖層時圖例高度不變 */
+@media (max-width: 640px) { .layer-sw { position: static; margin-top: 6px; } } /* 手機：切換按鈕放在地圖下方，不遮住南部標記 */

@@ -157,7 +157,7 @@
     const ser = d.series || [];
     const peak = ser.reduce((m, s) => (s.sub > (m ? m.sub : -1) ? s : m), null);
     $("kpis").innerHTML =
-      k("全台即時發電功率", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
+      k("全台即時發電功率（三類合計）", fmt(d.subtotal), "MW").replace('class="kpi"', 'class="kpi wide"') +
       (DEV ? k("資料一致性（今日，開發者檢視）", pct == null ? "–" : fmt(pct, pct === 100 ? 0 : 1), "%") : "") +
       k(`今日尖峰發電功率${peak ? "（" + peak.t + "）" : ""}`, peak ? fmt(peak.sub) : "–", "MW").replace('class="kpi"', DEV ? 'class="kpi"' : 'class="kpi wide"') +
       [k("台電自有", fmt(ownMW), "MW", "var(--s-own)"), k("大型案場", fmt(bigMW), "MW", "var(--s-site)"),
@@ -190,7 +190,8 @@
     碩力光: ["雲林縣", "臺西鄉", 120.1960, 23.7020], 向陽光: ["嘉義縣", "義竹鄉", 120.2428, 23.3362],
     天英光: ["臺南市", "七股區", 120.1374, 23.1407], 昱昶光: ["雲林縣", "四湖、口湖一帶", 120.2257, 23.6378],
   };
-  const LAYERS = [["own", "台電自有"], ["pur", "大型案場"], ["all", "全部"]];
+  // 切換按鈕：名稱＋圓的大小代表的數值（2026-11-12）；「全部」兩種數值不同，圓改同樣大小，只表示位置與數量
+  const LAYERS = [["own", "台電自有", "裝置容量"], ["pur", "大型案場", "發電功率"], ["all", "全部", "位置與數量"]];
   let mapLayer = "own";
   try { mapLayer = localStorage.getItem("mapLayer") || "own"; } catch (e) {}
   let lastMapData = null;
@@ -246,7 +247,7 @@
     const rOwn = d3.scaleSqrt().domain([0, d3.max(ownC, (t) => t.size) || 1]).range([9, 13]);
     const rPur = d3.scaleSqrt().domain([0, d3.max(purC, (t) => t.size) || 1]).range([9, 13]);
     const nodes = [].concat(showOwn ? ownC : [], showPur ? purC : []);
-    nodes.forEach((t) => { t.r = t.kind === "own" ? rOwn(t.size) : rPur(t.size); t.x = t.at[0]; t.y = t.at[1]; });
+    nodes.forEach((t) => { t.r = mapLayer === "all" ? 11 : t.kind === "own" ? rOwn(t.size) : rPur(t.size); t.x = t.at[0]; t.y = t.at[1]; });
     // 標記互相重疊時自動推開（固定次數計算，結果每次相同），偏移較大者以細線指回原位置
     const sim = d3.forceSimulation(nodes).force("x", d3.forceX((t) => t.at[0]).strength(0.4)).force("y", d3.forceY((t) => t.at[1]).strength(0.4))
       .force("collide", d3.forceCollide((t) => t.r + 2).iterations(3)).stop();
@@ -288,11 +289,12 @@
 
     const nPur = d.units.filter((u) => u.category === "購電" && u.name !== "其它購電太陽能").length, nOn = d3.sum(purC, (t) => t.items.length);
     // 圖例固定三列（未顯示的圖層變淡），切換時版面高度不變
+    const all = mapLayer === "all";
     $("mapLegend").innerHTML =
-      `<span class="${showOwn ? "" : "off"}"><i style="background:var(--s-own)"></i>台電自有：數字＝站數，大小＝裝置容量</span>` +
-      `<span class="${showPur ? "" : "off"}"><i style="background:var(--s-site)"></i>大型案場：數字＝場數，大小＝發電功率（另 ${nPur - nOn} 場查無場址）</span>` +
-      `<span>依縣市統整，位置為概略；標籤為即時發電功率</span>`;
-    $("layerSw").innerHTML = LAYERS.map(([k, t]) => `<button type="button" data-k="${k}" aria-pressed="${k === mapLayer}">${t}</button>`).join("");
+      `<span class="${showOwn ? "" : "off"}"><i style="background:var(--s-own)"></i>台電自有：數字＝站數，${all ? "大小相同" : "大小＝裝置容量（2024 場址資料）"}</span>` +
+      `<span class="${showPur ? "" : "off"}"><i style="background:var(--s-site)"></i>大型案場：數字＝場數，${all ? "大小相同" : "大小＝即時發電功率"}（另 ${nPur - nOn} 場查無場址）</span>` +
+      `<span>${all ? "全部：兩類數值意義不同，只顯示位置與數量；數值看提示框" : "依縣市統整，位置為概略；標籤為即時發電功率"}</span>`;
+    $("layerSw").innerHTML = LAYERS.map(([k, t, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === mapLayer}"><span class="ls-n">${t}</span><span class="ls-v">${v}</span></button>`).join("");
     $("layerSw").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       mapLayer = b.dataset.k; try { localStorage.setItem("mapLayer", mapLayer); } catch (e) {}
       renderMap(lastMapData);
