@@ -263,26 +263,32 @@
     const stnName = (s) => { const m = s.name.match(/^(.*?)(太陽光電發電站)$/);
       return m ? `<span class="stn">${m[1]}</span><span class="stn-sfx">${m[2]}</span>（${s.town}）` : `${s.name}（${s.town}）`; };
     const tipHtml = (t) => {
+      // 「全部」：兩類數值不同（裝置容量／發電功率），提示框只列名稱與位置，不顯示數值，避免單位混用（2026-11-12）
+      if (mapLayer === "all") {
+        const foot = `<div class="tip-foot">全部圖層只列名稱；數值請切換「台電自有（裝置容量）」或「大型案場（發電功率）」</div>`;
+        if (t.kind === "pur") return `<b>大型案場｜${t.c}（${t.items.length} 場）</b>` +
+          `<div class="stn-grid">` + t.items.map((u) => `<span class="stn">${u.name}</span><span class="stn-sfx">（${PUR_SITE[u.name][1]}）</span><span></span>`).join("") + `</div>` + foot;
+        return `<b>台電自有｜${t.c}（${t.items.length} 站）</b>` +
+          `<div class="stn-grid">` + t.items.map((x) => stnCells(x) + `<span></span>`).join("") + `</div>` + foot;
+      }
       if (t.kind === "pur") return `<b>大型案場｜${t.c}（${t.items.length} 場）</b>` +
         t.items.map((u) => row(`${u.name}（${PUR_SITE[u.name][1]}）`, fmt(u.net) + " MW")).join("") +
-        row("合計", fmt(t.size) + " MW") + `<div class="tip-foot">數值為即時發電功率；位置以縣市統整（概略）</div>`;
-      const live = t.live.map((s) => row(`${s.unit} 即時發電功率`, fmt(unitNet[s.unit]) + " MW")).join("");
-      const hasOther = t.items.some((s) => !LIVE_UNITS.includes(s.unit));
+        row("發電功率合計", fmt(t.size) + " MW") + `<div class="tip-foot">數值為即時發電功率；位置以縣市統整（概略）</div>`;
+      // 台電自有圖層只顯示裝置容量（2026-11-12：各圖層只顯示自己的數值，不混用發電功率）
       const abbr = [/E\/S/.test(t.items.map((s) => s.name).join()) ? "E/S＝超高壓變電所" : "", /D\/S/.test(t.items.map((s) => s.name).join()) ? "D/S＝配電變電所" : ""].filter(Boolean).join("、");
       return `<b>台電自有｜${t.c}（${t.items.length} 站）</b>` +
         `<div class="stn-grid">` + t.items.map((s) => stnCells(s) + `<span class="v">${fmt(s.capacityKW / 1000, 2)} MW</span>`).join("") + `</div>` +
-        row("合計", fmt(t.size, 2) + " MW") + (live ? `<div class="tip-sep"></div>${live}` : "") +
+        row("裝置容量合計", fmt(t.size, 2) + " MW") +
         `<div class="tip-foot">數值為 2024 場址資料裝置容量；位置以縣市統整（概略）` +
-        (hasOther ? `<br>其餘發電站的發電功率含在「其它台電自有」<span style="white-space:nowrap">（全台合計 ${fmt(otherOwn)} MW）</span>` : "") +
         (abbr ? `<br>${abbr}` : "") + `</div>`;
     };
     const mk = mg.selectAll("g.mk").data(nodes).join("g").attr("class", (t) => "mk " + t.kind).attr("transform", (t) => `translate(${t.x},${t.y})`)
       .on("mousemove", (evt, t) => showTip(evt, tipHtml(t))).on("mouseleave", hideTip);
     mk.append("circle").attr("r", (t) => t.r);
     mk.append("text").attr("class", "mk-n").attr("y", 4).text((t) => t.items.length);
-    // 標籤：只在單一圖層時顯示即時發電功率（台電自有僅彰濱光、南鹽光有個別數值）
+    // 標籤：只在單一圖層顯示，數值與該圖層一致——大型案場＝即時發電功率；台電自有＝裝置容量（前兩大縣市）
     const lbls = mapLayer === "pur" ? purC.map((t) => ({ t, s: `${t.c.slice(0, 2)} ${fmt(t.size)} MW` }))
-      : mapLayer === "own" ? ownC.filter((t) => t.live.length).map((t) => ({ t, s: t.live.map((s) => `${s.unit} ${fmt(unitNet[s.unit])} MW`).join("、") })) : [];
+      : mapLayer === "own" ? ownC.slice().sort((a, b) => b.size - a.size).slice(0, 2).map((t) => ({ t, s: `${t.c.slice(0, 2)} ${fmt(t.size)} MW` })) : [];
     let lastY = -1e9;
     lbls.sort((a, b) => a.t.y - b.t.y).forEach((l) => { l.y = Math.max(l.t.y + 4, lastY + 17); lastY = l.y; });
     mg.selectAll("text.dot-lbl").data(lbls).join("text").attr("class", "dot-lbl").attr("x", (l) => l.t.x + l.t.r + 5).attr("y", (l) => l.y).text((l) => l.s);
@@ -293,7 +299,7 @@
     $("mapLegend").innerHTML =
       `<span class="${showOwn ? "" : "off"}"><i style="background:var(--s-own)"></i>台電自有：數字＝站數，${all ? "大小相同" : "大小＝裝置容量（2024 場址資料）"}</span>` +
       `<span class="${showPur ? "" : "off"}"><i style="background:var(--s-site)"></i>大型案場：數字＝場數，${all ? "大小相同" : "大小＝即時發電功率"}（另 ${nPur - nOn} 場查無場址）</span>` +
-      `<span>${all ? "全部：兩類數值意義不同，只顯示位置與數量；數值看提示框" : "依縣市統整，位置為概略；標籤為即時發電功率"}</span>`;
+      `<span>${all ? "全部：兩類數值意義不同，只顯示位置與數量；數值看提示框" : `依縣市統整，位置為概略；標籤為${mapLayer === "own" ? "裝置容量（前兩大縣市）" : "即時發電功率"}`}</span>`;
     $("layerSw").innerHTML = LAYERS.map(([k, t, v]) => `<button type="button" data-k="${k}" aria-pressed="${k === mapLayer}"><span class="ls-n">${t}</span><span class="ls-v">${v}</span></button>`).join("");
     $("layerSw").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       mapLayer = b.dataset.k; try { localStorage.setItem("mapLayer", mapLayer); } catch (e) {}
