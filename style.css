@@ -225,9 +225,7 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .pv3d .badge circle { fill: var(--tab, var(--accent)); stroke: var(--card); stroke-width: 2.5; }
 .pv3d .badge text { fill: #fff; font-size: 14px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .pv3d .hs { cursor: pointer; outline: none; }
-.pv3d .hs:hover .badge circle, .pv3d .hs:focus-visible .badge circle { r: 15; }
-.pv3d .hs.on .badge circle { fill: #f6b628; stroke: var(--ink); }
-.pv3d .hs.on .badge text { fill: #1f2328; }
+.pv3d .hs:hover .badge circle, .pv3d .hs:focus-visible .badge circle { r: 15; } /* 2026-11-13：選取時編號圓維持原色，不再變黃 */
 .pv3d .hs:focus-visible { filter: drop-shadow(0 0 4px var(--tab, var(--accent))); }
 
 .pv-info { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--card); }
@@ -324,3 +322,6 @@ html:not(.dev-auth) .dev-auth-only { display: none !important; }
 .layer-sw .ls-v { font-size: 11.5px; opacity: .8; white-space: nowrap; }
 @media (max-width: 640px) { #mapLegend { min-height: 154px; } } /* 切換圖層時圖例高度不變 */
 @media (max-width: 640px) { .layer-sw { position: static; margin-top: 6px; } } /* 手機：切換按鈕放在地圖下方，不遮住南部標記 */
+
+/* 會亂跳的小人（2026-11-13）：不擋滑過說明 */
+#pvScene .jumpers { pointer-events: none; }

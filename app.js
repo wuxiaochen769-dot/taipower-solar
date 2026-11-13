@@ -648,8 +648,70 @@
 
 
   // ───── 太陽光電怎麼發電：互動立體圖（2026-11-09；滑過顯示說明，觸控裝置點一下）─────
+  // ───── 會亂跳的小人（2026-11-13 雛形）：純點綴，不可點、不擋滑過說明；減少動態效果的設定下不跳 ─────
+  function initJumpers(scene) {
+    const NS = "http://www.w3.org/2000/svg";
+    // 草地區域（圖的座標）：中心點與活動半徑
+    const ZONES = [[580, 20, 30], [90, 310, 34], [80, 560, 30], [1010, 590, 24], [745, 10, 30]];
+    const LOOKS = [["#3b82f6", "#334155", "#3a2a1e"], ["#ef8354", "#1f2937", "#111827"], ["#10b981", "#475569", "#6b4f3a"], ["#a855f7", "#374151", "#2b2b2b"], ["#f59e0b", "#1e3a8a", "#5b3a29"]];
+    const person = ([shirt, pants, hair]) => {
+      const skin = "#f2c9a5";
+      return `<ellipse class="jp-sh" cx="0" cy="0" rx="9" ry="3.5" fill="rgba(30,40,30,.22)"/><g class="jp-body">` +
+        `<line x1="-3" y1="-19" x2="-3" y2="-1" stroke="${pants}" stroke-width="5" stroke-linecap="round"/><line x1="3" y1="-19" x2="3" y2="-1" stroke="${pants}" stroke-width="5" stroke-linecap="round"/>` +
+        `<line class="jp-arm l" x1="-7" y1="-36" x2="-9" y2="-22" stroke="${skin}" stroke-width="3.6" stroke-linecap="round"/>` +
+        `<rect x="-7.5" y="-39" width="15" height="22" rx="5" fill="${shirt}" stroke="rgba(0,0,0,.25)" stroke-width=".8"/>` +
+        `<line class="jp-arm r" x1="7" y1="-36" x2="9" y2="-22" stroke="${skin}" stroke-width="3.6" stroke-linecap="round"/>` +
+        `<circle cx="0" cy="-45.5" r="6.8" fill="${skin}" stroke="rgba(0,0,0,.2)" stroke-width=".7"/>` +
+        `<path d="M-6.8,-46.5 Q-6,-54 0,-53.5 Q6.5,-54 6.8,-46.5 Q3,-50 -6.8,-46.5Z" fill="${hair}"/></g>`;
+    };
+    const layer = document.createElementNS(NS, "g"); layer.setAttribute("class", "jumpers"); layer.setAttribute("aria-hidden", "true");
+    scene.appendChild(layer);
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const ppl = ZONES.map(([cx, cy, r], i) => {
+      const g = document.createElementNS(NS, "g"); g.innerHTML = person(LOOKS[i % LOOKS.length]); layer.appendChild(g);
+      const p = { g, body: g.querySelector(".jp-body"), sh: g.querySelector(".jp-sh"), arms: g.querySelectorAll(".jp-arm"), cx, cy, r, x: cx + rnd(-r, r) * 0.5, y: cy + rnd(-r, r) * 0.3, face: Math.random() < 0.5 ? -1 : 1, hop: null, wait: rnd(0, 1200) };
+      return p;
+    });
+    const draw = (p, h, k) => {
+      p.g.setAttribute("transform", `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${(0.8 * p.face).toFixed(2)},0.8)`);
+      p.body.setAttribute("transform", `translate(0,${(-h).toFixed(1)})`);
+      p.sh.setAttribute("rx", (9 - Math.min(5, h / 4)).toFixed(1));
+      const up = h > 2 ? -1 : 1; // 跳起時手舉高
+      p.arms.forEach((a, j) => a.setAttribute("y2", up < 0 ? "-48" : "-22"));
+    };
+    ppl.forEach((p) => draw(p, 0));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // 使用者設定減少動態：只站著
+    let last = 0, running = true;
+    const tick = (t) => {
+      if (!running) return;
+      const dt = last ? Math.min(60, t - last) : 16; last = t;
+      ppl.forEach((p) => {
+        if (!p.hop) {
+          p.wait -= dt; if (p.wait > 0) return;
+          // 隨機：原地跳、往旁邊跳、偶爾連跳；目標點限制在草地範圍內
+          const big = Math.random() < 0.45, ang = rnd(0, Math.PI * 2), dist = big ? rnd(8, p.r) : 0;
+          let tx = p.x + Math.cos(ang) * dist, ty = p.y + Math.sin(ang) * dist * 0.5;
+          const dx = tx - p.cx, dy = (ty - p.cy) * 2, d = Math.hypot(dx, dy); if (d > p.r) { tx = p.cx + (dx / d) * p.r; ty = p.cy + (dy / d) * p.r / 2; }
+          if (Math.abs(tx - p.x) > 2) p.face = tx > p.x ? 1 : -1;
+          p.hop = { x0: p.x, y0: p.y, x1: tx, y1: ty, h: rnd(10, big ? 24 : 18), dur: rnd(380, 620), t: 0, again: Math.random() < 0.35 };
+        }
+        const o = p.hop; o.t += dt; const k = Math.min(1, o.t / o.dur);
+        p.x = o.x0 + (o.x1 - o.x0) * k; p.y = o.y0 + (o.y1 - o.y0) * k;
+        draw(p, 4 * o.h * k * (1 - k));
+        if (k >= 1) { p.hop = null; p.wait = o.again ? rnd(60, 160) : rnd(400, 2200); }
+      });
+      requestAnimationFrame(tick);
+    };
+    // 不在畫面上或分頁切走時暫停，省電
+    const io = new IntersectionObserver((es) => { const v = es[0].isIntersecting && !document.hidden; if (v && !running) { running = true; last = 0; requestAnimationFrame(tick); } else if (!v) running = false; });
+    io.observe(scene);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) running = false; else if (!running) { running = true; last = 0; requestAnimationFrame(tick); } });
+    requestAnimationFrame(tick);
+  }
+
   function initPvScene() {
     const scene = $("pvScene"), stage = $("pvStage"), pop = $("pvPop"); if (!scene) return;
+    initJumpers(scene);
     const INFO = {
       house: { t: "屋頂型小型案場", li: ["在建物屋頂設置光電板", "發的電經電表送入台電電網"] },
       sun: { n: 1, t: "太陽光", li: ["提供發電的能量", "日射量越高，發電越多"] },
