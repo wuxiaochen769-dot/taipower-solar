@@ -441,7 +441,7 @@
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
     // 趨勢與週彙總排除：已命名事件＋有氣象署觀測佐證的天氣異常日（2026-11-16d）
-    loadWxObs().then(() => { EXCL = EVENTS.concat(wxBands(days)); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
+    loadWxObs().then(() => { EXCL = EVENTS.concat(wxBands(days)); EXMED = d3.median(days, (d) => d.peak); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
     renderMonths(days, start, lastDay);
   }
 
@@ -453,8 +453,9 @@
   ];
   const LOW_RATIO = 0.8; // 尖峰低於統計期間中位數的 80% 視為「明顯偏低」
   const eventOf = (d) => EVENTS.find((e) => d >= e.from && d <= e.to);
-  let EXCL = EVENTS;
-  const exOf = (d) => EXCL.find((e) => d >= e.from && d <= e.to);
+  let EXCL = EVENTS, EXMED = null;
+  // 排除條件：落在異常期間內，且當天尖峰確實明顯偏低（低於中位數 80%）；期間內未偏低的日子照常計算（如 10/22）
+  const exOf = (d) => (d.peak != null && EXMED && d.peak < EXMED * LOW_RATIO ? EXCL.find((e) => d.d >= e.from && d.d <= e.to) : null);
   // 天氣觀測（2026-11-16）：wx_obs.json＝氣象署 CODiS 5 站平均的每日天氣概況；有需要時（數據異常）才手動更新
   // 已查明原因的收集中斷（2026-11-16）：只寫已確認的事實
   const GAP_NOTE = { "2026-11-12": "雲端收集暫停（Google 要求帳號驗證），06:00～10:20 未收到資料，數值偏低" };
@@ -621,7 +622,7 @@
   function renderReg(days) {
     const el = d3.select("#regChart"); if (el.empty()) return; el.selectAll("*").remove();
     const t0 = toDate(days[0].d), dx = (d) => Math.round((toDate(d.d) - t0) / DAY);
-    const used = days.filter((d) => d.peak != null && !exOf(d.d)), skip = days.filter((d) => d.peak != null && exOf(d.d));
+    const used = days.filter((d) => d.peak != null && !exOf(d)), skip = days.filter((d) => d.peak != null && exOf(d));
     if (used.length < 7) { $("regSum").textContent = "資料少於 7 天，暫不計算趨勢。"; return; }
     const R = linReg(used.map((d) => [dx(d), d.peak])), wk = R.b * 7, pct = wk / R.my;
     const lvl = R.r2 >= 0.6 ? "明顯" : R.r2 >= 0.3 ? "中等" : "很弱";
@@ -652,7 +653,7 @@
     svg.append("g").selectAll("circle").data(skip).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 4)
       .style("fill", "var(--card)").style("stroke", "var(--muted)").style("stroke-width", 1.5);
     svg.append("g").selectAll("circle").data(used.concat(skip)).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 10).style("fill", "transparent")
-      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("趨勢線", fmt(R.a + R.b * dx(d), 0) + " MW")}` + (exOf(d.d) ? `<div class="tip-note">${exOf(d.d).title}（不納入計算）</div>` : "")))
+      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("趨勢線", fmt(R.a + R.b * dx(d), 0) + " MW")}` + (exOf(d) ? `<div class="tip-note">${exOf(d).title}（不納入計算）</div>` : "")))
       .on("mouseleave", hideTip);
   }
 
@@ -664,7 +665,7 @@
       const we = new Date(ws.getTime() + 6 * DAY), a = ymd(ws), b = ymd(we);
       const ds = days.filter((d) => d.d >= a && d.d <= b);
       if (ds.length) {
-        const ok = ds.filter((d) => d.peak != null && !exOf(d.d)), ex = ds.length - ok.length;
+        const ok = ds.filter((d) => d.peak != null && !exOf(d)), ex = ds.length - ok.length;
         const avg = ok.length ? d3.mean(ok, (d) => d.peak) : null, s = summarize(ds), done = b <= lastDay && ds.length === 7;
         let cmp = "–";
         if (avg != null && prev != null) { const df = avg - prev; cmp = `<span class="${df < 0 ? "dn" : "up"}">${df < 0 ? "▼" : "▲"} ${fmt(Math.abs(df), 0)}</span>`; }
