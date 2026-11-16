@@ -465,7 +465,9 @@
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
     const med = d3.median(days, (d) => d.peak), isLow = (d) => d.peak != null && med && d.peak < med * LOW_RATIO;
-    const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d);
+    // 標示期間：已命名事件（颱風）＋有氣象署觀測佐證的天氣異常（2026-11-16c）
+    const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d).concat(wxBands(days));
+    const evOf = (d) => evs.find((e) => d >= e.from && d <= e.to);
     $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>` +
       `<span><i style="background:var(--warn);border-radius:50%"></i>尖峰明顯偏低</span>`;
     const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
@@ -496,16 +498,19 @@
         cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
         showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
           (wxOf(d.d) ? row("天氣（氣象署觀測）", wxTxt(wxOf(d.d))) : "") +
-          (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}影響</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
+          (evOf(d.d) ? `<div class="tip-note">${evOf(d.d).title}影響</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
-    // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；窄螢幕省略
-    if (W >= 640) evs.forEach((e) => {
+    // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；右側空間不足時改放左側；窄螢幕省略
+    if (W >= 640) evs.forEach((e, i) => {
       const lo = days.filter((d) => d.d >= e.from && d.d <= e.to && d.peak != null).sort((a, b) => a.peak - b.peak)[0]; if (!lo) return;
-      const px = x(toDate(lo.d)), py = y(lo.peak), tx = x(new Date(toDate(e.to).getTime() + DAY / 2)) + 14, ty = py + 4;
+      const right = x(new Date(toDate(e.to).getTime() + DAY / 2)), left = x(new Date(toDate(e.from).getTime() - DAY / 2));
+      const nxt = evs.filter((o) => o.from > e.to).map((o) => x(new Date(toDate(o.from).getTime() - DAY / 2)));
+      const room = Math.min(W - m.r, ...nxt) - right, onL = room < 150;
+      const px = x(toDate(lo.d)), py = y(lo.peak), tx = onL ? left - 14 : right + 14, ty = py + 4;
       const g = svg.append("g").style("pointer-events", "none");
-      g.append("line").attr("x1", px + 6).attr("y1", py).attr("x2", tx - 4).attr("y2", ty - 4).style("stroke", "var(--warn)").style("stroke-width", 1.2);
-      const t = g.append("text").attr("x", tx).attr("y", ty).attr("font-size", 13.75).attr("fill", "var(--ink)");
+      g.append("line").attr("x1", px + (onL ? -6 : 6)).attr("y1", py).attr("x2", tx + (onL ? 4 : -4)).attr("y2", ty - 4).style("stroke", "var(--warn)").style("stroke-width", 1.2);
+      const t = g.append("text").attr("x", tx).attr("y", ty).attr("font-size", 13.75).attr("fill", "var(--ink)").attr("text-anchor", onL ? "end" : "start");
       t.append("tspan").attr("font-weight", 700).attr("fill", "var(--warn)").text(`尖峰約 ${fmt(lo.peak, 0)} MW`);
       t.append("tspan").attr("x", tx).attr("dy", 18).attr("fill", "var(--ink2)").text(`平常約 ${fmt(med, 0)} MW`);
     });
@@ -540,6 +545,18 @@
       else groups.push({ key: o.key, type: o.type, from: o.d, to: o.d, items: [o] });
     });
     return { groups: groups.sort((a, b) => (a.from < b.from ? -1 : 1)), M };
+  }
+
+  // 有氣象署觀測佐證的天氣異常期間（不含已命名事件、資料不完整、單一案場）→ 圖上標示用
+  const WX_RANK = { 陰雨: 2, 多雲: 1, 晴: 0 };
+  function wxBands(days) {
+    if (!WXOBS) return [];
+    return inferAnomalies(days).groups.filter((g) => ["low", "wide", "est"].includes(g.type) && !EVENTS.some((e) => e.from <= g.to && e.to >= g.from)).map((g) => {
+      const ws = []; for (let t = toDate(g.from); t <= toDate(g.to); t = new Date(t.getTime() + DAY)) { const w = wxOf(ymd(t)); if (w) ws.push(w); }
+      if (!ws.length) return null;
+      const cats = [...new Set(ws.map((w) => w.c))];
+      return { from: g.from, to: g.to, title: cats.join("轉"), tag: cats.slice().sort((a, b) => WX_RANK[b] - WX_RANK[a])[0] };
+    }).filter(Boolean);
   }
 
   function renderTrendNotes(days) {
