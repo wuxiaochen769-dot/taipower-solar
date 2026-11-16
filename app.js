@@ -440,7 +440,7 @@
       k("收集完整度", pctTxt(s.comp).replace("%", ""), "%", `${s.n.toLocaleString()} / ${s.exp.toLocaleString()} 筆`) +
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
-    renderTrend(days);
+    loadWxObs().then(() => renderTrend(days));
     renderReg(days);
     renderWeeks(days, start, lastDay);
     renderMonths(days, start, lastDay);
@@ -454,6 +454,13 @@
   ];
   const LOW_RATIO = 0.8; // 尖峰低於統計期間中位數的 80% 視為「明顯偏低」
   const eventOf = (d) => EVENTS.find((e) => d >= e.from && d <= e.to);
+  // 天氣觀測（2026-11-16）：wx_obs.json＝氣象署 CODiS 5 站平均的每日天氣概況；有需要時（數據異常）才手動更新
+  // 已查明原因的收集中斷（2026-11-16）：只寫已確認的事實
+  const GAP_NOTE = { "2026-11-12": "雲端收集暫停（Google 要求帳號驗證），06:00～10:20 未收到資料，數值偏低" };
+  let WXOBS = null;
+  const loadWxObs = async () => { try { WXOBS = await (await fetch("wx_obs.json?_=" + Date.now())).json(); } catch (e) { WXOBS = null; } };
+  const wxOf = (d) => (WXOBS && WXOBS.days[d]) || null;
+  const wxTxt = (w) => `${w.c}，日照率 ${w.rate}%` + (w.rain >= 1 ? `、降雨 ${fmt(w.rain, 1)} mm` : "");
 
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
@@ -488,7 +495,8 @@
         const [mx] = d3.pointer(evt), d = days[bis(days, x.invert(mx))];
         cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
         showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
-          (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}影響</div>` : isLow(d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
+          (wxOf(d.d) ? row("天氣（氣象署觀測）", wxTxt(wxOf(d.d))) : "") +
+          (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}影響</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
     // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；窄螢幕省略
@@ -536,24 +544,42 @@
 
   function renderTrendNotes(days) {
     const el = $("trendNotes"); if (!el) return;
-    const { groups, M } = inferAnomalies(days);
+    const { groups } = inferAnomalies(days);
     const pc = (v) => Math.round(v * 10) + " 成";
+    const N = WXOBS ? WXOBS.meta.normal : null;
+    let usedObs = false;
     const items = groups.map((g) => {
       const it = g.items, e = EVENTS.find((x) => x.from <= g.to && x.to >= g.from);
       const minBy = (k) => it.reduce((m, o) => (o[k] != null && (m == null || o[k] < m) ? o[k] : m), null);
-      // 給一般民眾看的簡短說明：事件名稱（或推估類型）＋一句原因
-      let title, text, est = !(e && g.type !== "unit");
-      if (g.type === "unit") { title = it[0].unit; text = "單一案場數值異常，不影響全台"; }
-      else if (g.type === "gap") { title = "資料不完整"; text = "當天收集中斷，數值可能偏低"; }
+      const range = g.type === "unit" || !e ? [g.from, g.to] : [e.from, e.to];
+      const dates = []; for (let t = toDate(range[0]); t <= toDate(range[1]); t = new Date(t.getTime() + DAY)) dates.push(ymd(t));
+      const ws = dates.map(wxOf).filter(Boolean);
+      // 給一般民眾看的簡短說明：事件名稱或天氣概況＋一句原因；有氣象署觀測就以觀測為依據，沒有才標「推估」
+      let title, text, tag = "";
+      if (g.type === "unit") { title = it[0].unit; text = "單一案場數值異常，不影響全台"; tag = "推估"; }
+      else if (g.type === "gap") { title = "資料不完整"; text = GAP_NOTE[g.from] || "當天收集中斷，數值可能偏低"; }
       else {
         const r = g.type === "wide" ? Math.min(minBy("rl"), minBy("rs")) : minBy("rp");
-        title = e ? e.title : "天氣不佳";
-        text = g.type === "est" ? "小型案場估算值偏低" : `日照減少，發電降至約平常的 ${pc(r)}`;
+        const drop = `發電降至約平常的 ${pc(r)}`;
+        if (ws.length) {
+          usedObs = true;
+          const cats = [...new Set(ws.map((w) => w.c))];
+          title = e ? e.title : cats.join("轉");
+          const lo = ws.reduce((m, w) => (w.rate < m.rate ? w : m)), maxRain = Math.max(...ws.map((w) => w.rain));
+          const one = ws.length === 1, rain = maxRain >= 1 ? `、降雨${one ? "" : "最多"} ${fmt(maxRain, 1)} mm` : "";
+          text = `日照率${one ? "" : "最低"}僅 ${lo.rate}%（晴天約 ${N.rate}%）${rain}，${drop}`;
+          tag = "觀測";
+        } else {
+          title = e ? e.title : "天氣不佳";
+          text = g.type === "est" ? "小型案場估算值偏低" : `日照減少，${drop}`;
+          tag = e ? "" : "推估";
+        }
       }
-      const range = est ? [g.from, g.to] : [e.from, e.to];
-      return `<li><span class="pill${est ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${est ? '<span class="est-tag">推估</span>' : ""}</li>`;
+      const tagH = tag === "觀測" ? '<span class="obs-tag">氣象署觀測</span>' : tag ? '<span class="est-tag">推估</span>' : "";
+      return `<li><span class="pill${tag === "推估" ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${tagH}</li>`;
     });
-    el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` : "";
+    el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` +
+      (usedObs ? `<p class="tn-src">天氣資料：${WXOBS.meta.source}，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` : "") : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {
