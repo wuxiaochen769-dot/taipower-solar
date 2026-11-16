@@ -440,9 +440,8 @@
       k("收集完整度", pctTxt(s.comp).replace("%", ""), "%", `${s.n.toLocaleString()} / ${s.exp.toLocaleString()} 筆`) +
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
-    loadWxObs().then(() => renderTrend(days));
-    renderReg(days);
-    renderWeeks(days, start, lastDay);
+    // 趨勢與週彙總排除：已命名事件＋有氣象署觀測佐證的天氣異常日（2026-11-16d）
+    loadWxObs().then(() => { EXCL = EVENTS.concat(wxBands(days)); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
     renderMonths(days, start, lastDay);
   }
 
@@ -454,6 +453,8 @@
   ];
   const LOW_RATIO = 0.8; // 尖峰低於統計期間中位數的 80% 視為「明顯偏低」
   const eventOf = (d) => EVENTS.find((e) => d >= e.from && d <= e.to);
+  let EXCL = EVENTS;
+  const exOf = (d) => EXCL.find((e) => d >= e.from && d <= e.to);
   // 天氣觀測（2026-11-16）：wx_obs.json＝氣象署 CODiS 5 站平均的每日天氣概況；有需要時（數據異常）才手動更新
   // 已查明原因的收集中斷（2026-11-16）：只寫已確認的事實
   const GAP_NOTE = { "2026-11-12": "雲端收集暫停（Google 要求帳號驗證），06:00～10:20 未收到資料，數值偏低" };
@@ -609,7 +610,7 @@
       `<td class="n">${fmt(s.avgNoon)}</td><td class="n">${pctTxt(s.comp)}</td></tr>`;
   }
 
-  // 整體趨勢：每日尖峰的線性迴歸（最小平方法），排除已說明的異常事件日
+  // 整體趨勢：每日尖峰的線性迴歸（最小平方法），排除已說明的異常事件日與天氣異常日
   function linReg(pts) {
     const n = pts.length, mx = d3.mean(pts, (p) => p[0]), my = d3.mean(pts, (p) => p[1]);
     const sxy = d3.sum(pts, (p) => (p[0] - mx) * (p[1] - my)), sxx = d3.sum(pts, (p) => (p[0] - mx) ** 2);
@@ -620,17 +621,19 @@
   function renderReg(days) {
     const el = d3.select("#regChart"); if (el.empty()) return; el.selectAll("*").remove();
     const t0 = toDate(days[0].d), dx = (d) => Math.round((toDate(d.d) - t0) / DAY);
-    const used = days.filter((d) => d.peak != null && !eventOf(d.d)), skip = days.filter((d) => d.peak != null && eventOf(d.d));
+    const used = days.filter((d) => d.peak != null && !exOf(d.d)), skip = days.filter((d) => d.peak != null && exOf(d.d));
     if (used.length < 7) { $("regSum").textContent = "資料少於 7 天，暫不計算趨勢。"; return; }
     const R = linReg(used.map((d) => [dx(d), d.peak])), wk = R.b * 7, pct = wk / R.my;
     const lvl = R.r2 >= 0.6 ? "明顯" : R.r2 >= 0.3 ? "中等" : "很弱";
     const dir = Math.abs(pct) < 0.005 ? "大致持平" : wk < 0 ? `每週約下降 ${fmt(-wk, 0)} MW（約 ${fmt(-pct * 100, 1)}%）` : `每週約上升 ${fmt(wk, 0)} MW（約 ${fmt(pct * 100, 1)}%）`;
-    const evNames = [...new Set(skip.map((d) => eventOf(d.d).title))].join("、");
+    const nEv = skip.filter((d) => eventOf(d.d)).length, nWx = skip.length - nEv;
+    const evNames = [...new Set(skip.filter((d) => eventOf(d.d)).map((d) => eventOf(d.d).title))].join("、");
+    const exTxt = [nEv ? `${evNames} ${nEv} 天` : "", nWx ? `天氣異常日（氣象署觀測）${nWx} 天` : ""].filter(Boolean).join("、");
     $("regSum").innerHTML = `<b>近 ${days.length} 天尖峰${dir}</b>　趨勢強度：${lvl}（R² ${fmt(R.r2, 2)}）` +
       `${wk < 0 && R.r2 >= 0.3 ? "；推測與秋冬日照時間變短、太陽角度變低有關" : ""}<span class="est-tag">推估資訊</span>` +
-      `<span class="reg-note">${skip.length ? `已排除 ${evNames} ${skip.length} 天；` : ""}由台電公布值計算的統計推估，非台電公布值；資料期間短，僅供參考</span>`;
+      `<span class="reg-note">${skip.length ? `已排除 ${exTxt}；` : ""}由台電公布值計算的統計推估，非台電公布值；資料期間短，僅供參考</span>`;
     $("regLegend").innerHTML = `<span><i style="background:var(--accent);border-radius:50%"></i>每日尖峰（納入計算）</span>` +
-      (skip.length ? `<span><i style="background:transparent;border:1.5px solid var(--muted);border-radius:50%"></i>異常事件日（排除）</span>` : "") +
+      (skip.length ? `<span><i style="background:transparent;border:1.5px solid var(--muted);border-radius:50%"></i>異常日（排除）</span>` : "") +
       `<span><i class="dash" style="border-top-color:var(--warn)"></i>趨勢線</span>`;
     const W = el.node().clientWidth || 900, H = Math.max(200, Math.round(W * 0.24)), m = { t: 14, r: 22, b: 30, l: 62 };
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
@@ -649,23 +652,23 @@
     svg.append("g").selectAll("circle").data(skip).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 4)
       .style("fill", "var(--card)").style("stroke", "var(--muted)").style("stroke-width", 1.5);
     svg.append("g").selectAll("circle").data(used.concat(skip)).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", 10).style("fill", "transparent")
-      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("趨勢線", fmt(R.a + R.b * dx(d), 0) + " MW")}` + (eventOf(d.d) ? `<div class="tip-note">${eventOf(d.d).title}（不納入計算）</div>` : "")))
+      .on("mousemove", (evt, d) => showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("趨勢線", fmt(R.a + R.b * dx(d), 0) + " MW")}` + (exOf(d.d) ? `<div class="tip-note">${exOf(d.d).title}（不納入計算）</div>` : "")))
       .on("mouseleave", hideTip);
   }
 
   function renderWeeks(days, start, lastDay) {
-    // 自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日，並與前一週比較
+    // 自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日與天氣異常日，並與前一週比較
     let ws = toDate(start);
     const rows = []; let i = 1, prev = null;
     while (ymd(ws) <= lastDay) {
       const we = new Date(ws.getTime() + 6 * DAY), a = ymd(ws), b = ymd(we);
       const ds = days.filter((d) => d.d >= a && d.d <= b);
       if (ds.length) {
-        const ok = ds.filter((d) => d.peak != null && !eventOf(d.d)), ex = ds.length - ok.length;
+        const ok = ds.filter((d) => d.peak != null && !exOf(d.d)), ex = ds.length - ok.length;
         const avg = ok.length ? d3.mean(ok, (d) => d.peak) : null, s = summarize(ds), done = b <= lastDay && ds.length === 7;
         let cmp = "–";
         if (avg != null && prev != null) { const df = avg - prev; cmp = `<span class="${df < 0 ? "dn" : "up"}">${df < 0 ? "▼" : "▲"} ${fmt(Math.abs(df), 0)}</span>`; }
-        rows.push(`<tr><td>第 ${i} 週<div class="sub-cell">${md(a)}～${md(b)}${done ? "" : "（進行中）"}</div></td><td class="n">${fmt(avg)}${ex ? `<div class="sub-cell">不含事件日 ${ex} 天</div>` : ""}</td><td class="n">${cmp}</td><td class="n">${pctTxt(s.comp)}</td></tr>`);
+        rows.push(`<tr><td>第 ${i} 週<div class="sub-cell">${md(a)}～${md(b)}${done ? "" : "（進行中）"}</div></td><td class="n">${fmt(avg)}${ex ? `<div class="sub-cell">不含異常日 ${ex} 天</div>` : ""}</td><td class="n">${cmp}</td><td class="n">${pctTxt(s.comp)}</td></tr>`);
         if (avg != null) prev = avg; i++;
       }
       ws = new Date(ws.getTime() + 7 * DAY);
