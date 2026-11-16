@@ -596,7 +596,7 @@
       return `<li><span class="pill${tag === "推估" ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${tagH}</li>`;
     });
     el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` +
-      (usedObs ? `<p class="tn-src">天氣資料：${WXOBS.meta.source}，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` : "") : "";
+      (usedObs ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` : "") : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {
