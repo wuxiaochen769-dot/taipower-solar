@@ -636,9 +636,9 @@
     $("regLegend").innerHTML = `<span><i style="background:var(--accent);border-radius:50%"></i>每日尖峰（納入計算）</span>` +
       (skip.length ? `<span><i style="background:transparent;border:1.5px solid var(--muted);border-radius:50%"></i>異常日（排除）</span>` : "") +
       `<span><i class="dash" style="border-top-color:var(--warn)"></i>趨勢線</span>`;
-    const W = el.node().clientWidth || 900, H = Math.max(200, Math.round(W * 0.24)), m = { t: 14, r: 22, b: 30, l: 62 };
+    const W = el.node().clientWidth || 900, H = Math.max(200, Math.round(W * 0.24)), m = { t: 28, r: 22, b: 30, l: 62 }; // 2026-11-18a：上邊距 14→28，避免「MW」與最上方刻度重疊
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
-    const x = d3.scaleTime().domain([t0, toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
+    const x = d3.scaleTime().domain([t0, toDate(days[days.length - 1].d)]).range([m.l + 12, W - m.r - 12]); // 2026-11-18a：左右各留 12，首末點不壓到邊框
     const lo = d3.min(days, (d) => d.peak), hi = d3.max(days, (d) => d.peak);
     const y = d3.scaleLinear().domain([Math.max(0, lo - 500), hi + 300]).nice().range([H - m.b, m.t]);
     svg.append("g").attr("class", "gridline").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.l - m.r)).tickFormat(""));
