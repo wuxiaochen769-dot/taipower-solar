@@ -274,6 +274,9 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .reg-sum .est-tag { font-size: 12.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; margin-left: 6px; }
 .reg-sum .reg-note { display: block; font-size: 14.375px; color: var(--muted); margin-top: 2px; }
 .stat-table .dn { color: var(--warn); } .stat-table .up { color: var(--ok); }
+/* 2026-11-23a：週彙總數值欄標題靠右，與數字對齊 */
+#weekTable th.n { text-align: right; }
+@media (min-width: 641px) { #weekTable { table-layout: fixed; width: 100%; } #weekTable th { width: 33.33%; } }
 #h-reg .est-tag { font-size: 13.75px; font-weight: 400; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; margin-left: 8px; vertical-align: 2px; }
 
 /* 2026-11-10 示意：地圖圖層切換＋大型案場（縣市統整） */
