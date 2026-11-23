@@ -658,23 +658,21 @@
   }
 
   function renderWeeks(days, start, lastDay) {
-    // 自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日與天氣異常日，並與前一週比較
+    // 自統計起始日起每 7 天為一週；平均尖峰不含已說明的異常事件日與天氣異常日（2026-11-23：移除「與前週相比」欄）
     let ws = toDate(start);
-    const rows = []; let i = 1, prev = null;
+    const rows = []; let i = 1;
     while (ymd(ws) <= lastDay) {
       const we = new Date(ws.getTime() + 6 * DAY), a = ymd(ws), b = ymd(we);
       const ds = days.filter((d) => d.d >= a && d.d <= b);
       if (ds.length) {
         const ok = ds.filter((d) => d.peak != null && !exOf(d)), ex = ds.length - ok.length;
         const avg = ok.length ? d3.mean(ok, (d) => d.peak) : null, s = summarize(ds), done = b <= lastDay && ds.length === 7;
-        let cmp = "–";
-        if (avg != null && prev != null) { const df = avg - prev; cmp = `<span class="${df < 0 ? "dn" : "up"}">${df < 0 ? "▼" : "▲"} ${fmt(Math.abs(df), 0)}</span>`; }
-        rows.push(`<tr><td>第 ${i} 週<div class="sub-cell">${md(a)}～${md(b)}${done ? "" : "（進行中）"}</div></td><td class="n">${fmt(avg)}${ex ? `<div class="sub-cell">不含異常日 ${ex} 天</div>` : ""}</td><td class="n">${cmp}</td><td class="n">${pctTxt(s.comp)}</td></tr>`);
-        if (avg != null) prev = avg; i++;
+        rows.push(`<tr><td>第 ${i} 週<div class="sub-cell">${md(a)}～${md(b)}${done ? "" : "（進行中）"}</div></td><td class="n">${fmt(avg)}${ex ? `<div class="sub-cell">不含異常日 ${ex} 天</div>` : ""}</td><td class="n">${pctTxt(s.comp)}</td></tr>`);
+        i++;
       }
       ws = new Date(ws.getTime() + 7 * DAY);
     }
-    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">平均尖峰 (MW)</th><th class="n">與前週相比 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("weekTable").innerHTML = `<thead><tr><th>週次</th><th class="n">平均尖峰 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
   function renderMonths(days, start, lastDay) {

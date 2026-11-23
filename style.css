@@ -342,8 +342,7 @@ html:not(.dev-auth) .dev-auth-only { display: none !important; }
   .stat-table td:first-child::before { content: none; }
   .stat-table td:first-child .sub-cell { font-weight: 400; }
   #weekTable td:nth-child(2)::before { content: "平均尖峰 (MW)"; }
-  #weekTable td:nth-child(3)::before { content: "與前週相比 (MW)"; }
-  #weekTable td:nth-child(4)::before { content: "收集完整度"; }
+  #weekTable td:nth-child(3)::before { content: "收集完整度"; }
   #monthTable td:nth-child(2)::before { content: "收集天數"; }
   #monthTable td:nth-child(3)::before { content: "平均尖峰 (MW)"; }
   #monthTable td:nth-child(4)::before { content: "最高尖峰 (MW)"; }
