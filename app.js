@@ -462,7 +462,13 @@
   let WXOBS = null;
   const loadWxObs = async () => { try { WXOBS = await (await fetch("wx_obs.json?_=" + Date.now())).json(); } catch (e) { WXOBS = null; } };
   const wxOf = (d) => (WXOBS && WXOBS.days[d]) || null;
-  const wxTxt = (w) => `${w.c}，日照率 ${w.rate}%` + (w.rain >= 1 ? `、降雨 ${fmt(w.rain, 1)} mm` : "");
+  // 2026-11-24：天氣分三個面向——天空狀況 c（氣象署雲量用詞）、日照 s（日照率）、降雨 r（3 站以上 ≥ 1 mm）
+  const SUN_RANK = { 不足: 2, 適中: 1, 充足: 0 };
+  const wxLbl = (w) => (w.s ? `${w.c}・日照${w.s}` : w.c) + (w.r ? "・有雨" : "");
+  const wxTxt = (w) => `${wxLbl(w)}（雲量 ${fmt(w.cloud, 1)}／10、日照率 ${w.rate}%` + (w.rain >= 1 ? `、降雨 ${fmt(w.rain, 1)} mm` : "") + "）";
+  // 多日期間的標題：天空狀況（依序轉變）＋最差的日照＋是否有雨
+  const wxTitle = (ws) => { const sky = [...new Set(ws.map((w) => w.c))].join("轉"); if (!ws[0].s) return sky; const worst = ws.map((w) => w.s).sort((a, b) => SUN_RANK[b] - SUN_RANK[a])[0]; return `${sky}・日照${worst}` + (ws.some((w) => w.r) ? "・有雨" : ""); };
+  const wxTag = (ws) => (ws[0].s ? "日照" + ws.map((w) => w.s).sort((a, b) => SUN_RANK[b] - SUN_RANK[a])[0] : null);
 
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
@@ -500,7 +506,7 @@
         cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
         showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
           (wxOf(d.d) ? row("天氣（氣象署觀測）", wxTxt(wxOf(d.d))) : "") +
-          (evOf(d.d) ? `<div class="tip-note">${evOf(d.d).title}影響</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
+          (evOf(d.d) ? `<div class="tip-note">${evOf(d.d).note ? evOf(d.d).title + "影響" : "天氣影響：" + evOf(d.d).title}</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
       })
       .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
     // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；右側空間不足時改放左側；窄螢幕省略
@@ -557,7 +563,7 @@
       const ws = []; for (let t = toDate(g.from); t <= toDate(g.to); t = new Date(t.getTime() + DAY)) { const w = wxOf(ymd(t)); if (w) ws.push(w); }
       if (!ws.length) return null;
       const cats = [...new Set(ws.map((w) => w.c))];
-      return { from: g.from, to: g.to, title: cats.join("轉"), tag: cats.slice().sort((a, b) => WX_RANK[b] - WX_RANK[a])[0] };
+      return { from: g.from, to: g.to, title: wxTitle(ws), tag: wxTag(ws) || cats.slice().sort((a, b) => WX_RANK[b] - WX_RANK[a])[0] };
     }).filter(Boolean);
   }
 
@@ -582,11 +588,10 @@
         const drop = `發電降至約平常的 ${pc(r)}`;
         if (ws.length) {
           usedObs = true;
-          const cats = [...new Set(ws.map((w) => w.c))];
-          title = e ? e.title : cats.join("轉");
+          title = e ? e.title : wxTitle(ws);
           const lo = ws.reduce((m, w) => (w.rate < m.rate ? w : m)), maxRain = Math.max(...ws.map((w) => w.rain));
           const one = ws.length === 1, rain = maxRain >= 1 ? `、降雨${one ? "" : "最多"} ${fmt(maxRain, 1)} mm` : "";
-          text = `日照率${one ? "" : "最低"}僅 ${lo.rate}%（晴天約 ${N.rate}%）${rain}，${drop}`;
+          text = `日照率${one ? "" : "最低"}僅 ${lo.rate}%（日照充足時約 ${N.rate}%）${rain}，${drop}`;
           tag = "觀測";
         } else {
           title = e ? e.title : "天氣不佳";
@@ -598,7 +603,8 @@
       return `<li><span class="pill${tag === "推估" ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${tagH}</li>`;
     });
     el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` +
-      (usedObs ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` : "") : "";
+      (usedObs ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` +
+        (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依氣象署雲量，晴（0～4／10）、多雲（5～8／10）、陰（9～10／10）（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p>` : "") : "") : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {
