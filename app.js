@@ -441,8 +441,8 @@
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
     // 趨勢與週彙總排除：已命名事件＋有氣象署觀測佐證的天氣異常日（2026-11-16d）
-    loadWxObs().then(() => { LOW_TH = lowTh(days); EXCL = EVENTS; EXMED = d3.median(days, (d) => d.peak); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
-    renderMonths(days, start, lastDay);
+    loadWxObs().then(() => { LOW_TH = lowTh(days); EXCL = EVENTS; EXMED = d3.median(days, (d) => d.peak); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); renderMonths(days, start, lastDay); });
+    renderMonths(days, start, lastDay); // 天氣檔載入前先畫一次，載入後再補上偏低、日照欄位
   }
 
   // 數據異常說明（2026-11-09 新增）：日期區間內的原因說明；圖上以底色標示
@@ -644,14 +644,14 @@
         (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依雲量（雲遮住天空的比例，全天空分 10 份），晴 0～4、多雲 5～8、陰 9～10（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>，見頁面下方用詞表）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p><p class="tn-src"><b>判定標準</b>（本網站自訂之觀測分類標準，非官方異常判定標準）：以觀測期間內資料完整之每日尖峰功率平均值為基準<br>・參考基準 ＝ 平均 × (1 − 30%) ＝ ${fmt(baseOf(days), 0)} × 0.7 ＝ ${fmt(lowTh(days), 1)} MW<br>・高於平均：&gt; ${fmt(baseOf(days), 0)} MW<br>・低於或等於平均：&gt; ${fmt(lowTh(days), 1)} MW，且 ≤ ${fmt(baseOf(days), 0)} MW<br>・明顯偏低：≤ ${fmt(lowTh(days), 1)} MW，標註可能原因（依同期氣象觀測，僅供參考），不納入趨勢與週彙總計算<br>・資料異常：缺值、收集不完整等，獨立判定</p>` : "") : "") : "";
   }
 
-  function statRow(label, sub, ds, extra, expDays) {
+  function statRow(label, sub, ds, extra, expDays, avgSub, tail) {
     const s = summarize(ds);
     // expDays：統計期間內應有的天數（月彙總用，整天沒收到也會反映在完整度）
     if (expDays) s.comp = s.n / (expDays * SLOTS);
-    return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.avgPeak)}</td>` +
+    return `<tr><td>${label}${sub ? `<div class="sub-cell">${sub}</div>` : ""}</td>${extra || ""}<td class="n">${fmt(s.avgPeak)}${avgSub || ""}</td>` +
       `<td class="n">${s.peakDay ? fmt(s.peakDay.peak) + `<div class="sub-cell">${md(s.peakDay.d)}</div>` : "–"}</td>` +
       `<td class="n">${s.lowDay ? fmt(s.lowDay.peak) + `<div class="sub-cell">${md(s.lowDay.d)}</div>` : "–"}</td>` +
-      `<td class="n">${fmt(s.avgNoon)}</td><td class="n">${pctTxt(s.comp)}</td></tr>`;
+      `<td class="n">${fmt(s.avgNoon)}</td>${tail || ""}<td class="n">${pctTxt(s.comp)}</td></tr>`;
   }
 
   // 整體趨勢：每日尖峰的線性迴歸（最小平方法），排除已說明的異常事件日與天氣異常日
@@ -728,10 +728,15 @@
       const ended = mEnd <= lastDay;
       const from = start > `${mk}-01` ? start : `${mk}-01`, to = ended ? mEnd : lastDay;
       const expDays = Math.round((toDate(to) - toDate(from)) / DAY) + 1;
+      // 2026-11-25：平均尖峰另列「不含異常日」；新增明顯偏低天數、日照充足天數（日照率 ≥ 70%，有氣象資料的天數為分母）
+      const ex = LOW_TH ? ds.filter((d) => exOf(d)) : [], okd = ds.filter((d) => d.peak != null && !ex.includes(d));
+      const wds = ds.map((d) => wxOf(d.d)).filter(Boolean), sunny = wds.filter((w) => w.rate >= 70).length;
+      const avgSub = ex.length ? `<div class="sub-cell">不含異常日 ${fmt(d3.mean(okd, (d) => d.peak))}（${ex.length} 天）</div>` : "";
+      const tail = `<td class="n">${LOW_TH ? ex.length + " 天" : "–"}</td><td class="n">${wds.length ? `${sunny} / ${wds.length} 天` : "–"}</td>`;
       return statRow(`${yy} 年 ${mm} 月`, `${md(from)}～${md(to)}${ended ? "" : "（進行中）"}`, ds,
-        `<td class="n">${ds.length} / ${expDays}</td>`, expDays);
+        `<td class="n">${ds.length} / ${expDays}</td>`, expDays, avgSub, tail);
     });
-    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">收集天數</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
+    $("monthTable").innerHTML = `<thead><tr><th>月份</th><th class="n">收集天數</th><th class="n">平均尖峰 (MW)</th><th class="n">最高尖峰 (MW)</th><th class="n">最低尖峰 (MW)</th><th class="n">平均 12:00 (MW)</th><th class="n">明顯偏低</th><th class="n">日照充足</th><th class="n">收集完整度</th></tr></thead><tbody>${rows.reverse().join("")}</tbody>`;
   }
 
 
