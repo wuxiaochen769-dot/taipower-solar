@@ -604,7 +604,7 @@
     });
     el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` +
       (usedObs ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` +
-        (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依氣象署雲量，晴（0～4／10）、多雲（5～8／10）、陰（9～10／10）（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p>` : "") : "") : "";
+        (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依雲量（雲遮住天空的比例，全天空分 10 份），晴 0～4、多雲 5～8、陰 9～10（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>，見頁面下方用詞表）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p>` : "") : "") : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {
