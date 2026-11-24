@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261124b">
+<link rel="stylesheet" href="style.css?v=20261125a">
 </head>
 <body>
 <header class="top">
@@ -222,13 +222,13 @@
   <div class="group g-data">
     <div class="group-head"><span class="group-no">3</span><div><h2 class="group-title">週與月比較<span class="g-tag">資料</span></h2><p class="group-desc">週以 7 天為單位、月以日曆月份彙總；10 月自 10/13 起算。</p></div></div>
     <section class="panel" aria-labelledby="h-reg">
-      <div class="panel-head"><h2 id="h-reg">整體趨勢<span class="est-tag">推估資訊</span></h2><p class="hint">每日尖峰的線性迴歸（排除颱風等異常事件日，及經氣象署觀測佐證的天氣異常日）</p></div>
+      <div class="panel-head"><h2 id="h-reg">整體趨勢<span class="est-tag">推估資訊</span></h2><p class="hint">每日尖峰的線性迴歸（排除颱風等異常事件日，及尖峰明顯偏低（≤ 參考基準）的日子）</p></div>
       <p class="reg-sum" id="regSum"></p>
       <div class="legend" id="regLegend"></div>
       <div class="chart" id="regChart"></div>
     </section>
     <section class="panel" aria-labelledby="h-week">
-      <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週；平均尖峰不含異常事件日及經氣象署觀測佐證的天氣異常日</p></div>
+      <div class="panel-head"><h2 id="h-week">週彙總</h2><p class="hint">自統計起始日起每 7 天為一週；平均尖峰不含異常事件日及尖峰明顯偏低（≤ 參考基準）的日子</p></div>
       <div class="table-scroll"><table class="units stat-table" id="weekTable"></table></div>
     </section>
     <section class="panel" aria-labelledby="h-month">
@@ -292,8 +292,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261124b"></script>
-<script src="app.js?v=20261124b"></script>
+<script src="config.js?v=20261125a"></script>
+<script src="app.js?v=20261125a"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {

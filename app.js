@@ -441,7 +441,7 @@
       k("資料一致性", pctTxt(s.consPct).replace("%", ""), "%", `${s.cons.toLocaleString()} / ${s.n.toLocaleString()} 筆`) +
       k("筆數完整的天數", s.full, "天", `共 ${s.days} 天，每天 ${SLOTS} 筆`);
     // 趨勢與週彙總排除：已命名事件＋有氣象署觀測佐證的天氣異常日（2026-11-16d）
-    loadWxObs().then(() => { EXCL = EVENTS.concat(wxBands(days)); EXMED = d3.median(days, (d) => d.peak); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
+    loadWxObs().then(() => { LOW_TH = lowTh(days); EXCL = EVENTS; EXMED = d3.median(days, (d) => d.peak); renderTrend(days); renderReg(days); renderWeeks(days, start, lastDay); });
     renderMonths(days, start, lastDay);
   }
 
@@ -451,11 +451,22 @@
     { from: "2026-10-22", to: "2026-10-24", tag: "颱風", title: "薔琵颱風",
       note: "日照減少，尖峰降至約平常的 4 成；資料收集完整，非收集錯誤" },
   ];
-  const LOW_RATIO = 0.8; // 尖峰低於統計期間中位數的 80% 視為「明顯偏低」
+  const LOW_RATIO = 0.8; // （大型／小型案場比較用）
+  // 2026-11-25：尖峰比統計期間平均低 30% 以上（< 平均 × 70%）列為異常資料，不納入趨勢與週彙總；同期天氣僅供參考
+  // 2026-11-25 發電功率偏低判定：觀測期間內「資料完整」（收集 ≥ 90%）之每日尖峰平均值為基準，當日尖峰較基準下降達 30% → 發電功率明顯偏低
+  //   本網站自訂之觀測分類標準，非官方異常判定標準；同期氣象觀測只用來說明可能原因
+  const LOW_DROP = 0.3; let LOW_TH = null;
+  const baseOf = (days) => d3.mean(days.filter((d) => d.peak != null && d.n >= SLOTS * 0.9), (d) => d.peak);
+  const lowTh = (days) => baseOf(days) * (1 - LOW_DROP);
+  // 分類：高於平均／低於或等於平均／明顯偏低（≤ 參考基準）；資料異常（收集不完整）獨立判定
+  const catOf = (d, base, th) => (d.peak == null || d.n < SLOTS * 0.9 ? "資料異常" : d.peak > base ? "高於平均" : d.peak > th ? "低於或等於平均" : "明顯偏低");
+  // 可能原因（依同期氣象觀測推估，僅供參考）
+  const causeOf = (d) => { const e = eventOf(d); if (e) return e.title; const w = wxOf(d); if (!w) return "原因待查";
+    const c = []; if (w.rate < 30) c.push("日照不足"); else if (w.rate < 70) c.push("日照偏少"); if (w.r) c.push("降雨"); return c.length ? c.join("、") : "原因待查（日照充足）"; };
   const eventOf = (d) => EVENTS.find((e) => d >= e.from && d <= e.to);
   let EXCL = EVENTS, EXMED = null;
   // 排除條件：落在異常期間內，且當天尖峰確實明顯偏低（低於中位數 80%）；期間內未偏低的日子照常計算（如 10/22）
-  const exOf = (d) => (d.peak != null && EXMED && d.peak < EXMED * LOW_RATIO ? EXCL.find((e) => d.d >= e.from && d.d <= e.to) : null);
+  const exOf = (d) => (d.peak != null && LOW_TH && d.peak <= LOW_TH && d.n >= SLOTS * 0.9 ? eventOf(d.d) || { title: "發電功率明顯偏低" } : null);
   // 天氣觀測（2026-11-16）：wx_obs.json＝氣象署 CODiS 5 站平均的每日天氣概況；有需要時（數據異常）才手動更新
   // 已查明原因的收集中斷（2026-11-16）：只寫已確認的事實
   const GAP_NOTE = { "2026-11-12": "雲端收集暫停（Google 要求帳號驗證），06:00～10:20 未收到資料，數值偏低" };
@@ -472,13 +483,14 @@
 
   function renderTrend(days) {
     const el = d3.select("#trendChart"); el.selectAll("*").remove();
-    const med = d3.median(days, (d) => d.peak), isLow = (d) => d.peak != null && med && d.peak < med * LOW_RATIO;
+    const med = d3.median(days, (d) => d.peak), base = baseOf(days), th = lowTh(days), isLow = (d) => d.peak != null && d.peak <= th && d.n >= SLOTS * 0.9;
     // 標示期間：已命名事件（颱風）＋有氣象署觀測佐證的天氣異常（2026-11-16c）
-    const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d).concat(wxBands(days));
+    const evs = EVENTS.filter((e) => e.to >= days[0].d && e.from <= days[days.length - 1].d); // 2026-11-25：偏低日改以下方「明顯偏低區間」呈現，不另畫底色
     const evOf = (d) => evs.find((e) => d >= e.from && d <= e.to);
     $("trendLegend").innerHTML = `<span><i style="background:var(--accent)"></i>每日尖峰發電功率</span><span><i style="background:var(--s-site)"></i>每日 12:00 發電功率</span>` +
-      `<span><i style="background:var(--warn);border-radius:50%"></i>尖峰明顯偏低</span>`;
-    const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: 62 };
+      `<span><i style="background:var(--warn);border-radius:50%"></i>發電功率明顯偏低</span>` +
+      `<span><i style="background:none;border-top:2px dashed var(--muted);height:0;margin-top:6px"></i>平均線</span><span><i style="background:none;border-top:2px dashed var(--warn);height:0;margin-top:6px"></i>參考基準線（平均 × 70%）</span><span style="color:var(--muted)">點擊圖上任一天，可查看可能原因與相關因素</span>`;
+    const W = el.node().clientWidth || 900, H = Math.max(240, Math.round(W * 0.32)), m = { t: 24, r: 22, b: 30, l: W >= 640 ? 150 : 62 }; // 2026-11-25：左側留白放平均、參考基準標籤
     const svg = el.append("svg").attr("viewBox", `0 0 ${W} ${H}`);
     const x = d3.scaleTime().domain([toDate(days[0].d), toDate(days[days.length - 1].d)]).range([m.l, W - m.r]);
     const y = d3.scaleLinear().domain([0, (d3.max(days, (d) => d.peak) || 1) * 1.08]).nice().range([H - m.b, m.t]);
@@ -494,23 +506,50 @@
       svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 14).attr("text-anchor", "middle").attr("font-size", 13.75).attr("font-weight", 700).attr("fill", "var(--ink2)").text(x1 - x0 >= 80 ? e.title : e.tag);
       if (x1 - x0 >= 80) svg.append("text").attr("x", (x0 + x1) / 2).attr("y", m.t + 30).attr("text-anchor", "middle").attr("font-size", 12.5).attr("fill", "var(--muted)").text(`${md(e.from)}～${md(e.to)}`);
     });
+    // 2026-11-25：明顯偏低區間（門檻以下淡紅底）＋平均基準線＋偏低門檻線
+    svg.append("rect").attr("x", m.l).attr("width", W - m.l - m.r).attr("y", y(th)).attr("height", Math.max(0, y(0) - y(th))).style("fill", "var(--warn)").style("opacity", 0.07);
+    svg.append("text").attr("x", m.l + 14).attr("y", y(0) - 12).attr("text-anchor", "start").attr("font-size", 15).attr("fill", "var(--warn)").style("opacity", 0.75).text("發電功率明顯偏低區間");
+    const hlabels = [];
+    const hline = (v, color, label, name) => {
+      svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", y(v)).attr("y2", y(v)).style("stroke", color).style("stroke-width", 1.6).style("stroke-dasharray", "6 4");
+      hlabels.push([v, color, label, name]);
+    };
+    hline(base, "var(--muted)", `${fmt(base, 0)} MW`, "平均");
+    hline(th, "var(--warn)", `${fmt(th, 1)} MW`, "參考基準");
     const line = (key) => d3.line().defined((d) => d[key] != null).x((d) => x(toDate(d.d))).y((d) => y(d[key]));
     svg.append("path").datum(days).attr("d", line("noon")).style("fill", "none").style("stroke", "var(--s-site)").style("stroke-width", 2);
     svg.append("path").datum(days).attr("d", line("peak")).style("fill", "none").style("stroke", "var(--accent)").style("stroke-width", 2.5);
     svg.append("g").selectAll("circle").data(days).join("circle").attr("cx", (d) => x(toDate(d.d))).attr("cy", (d) => y(d.peak)).attr("r", (d) => (isLow(d) ? 5 : 3.5)).style("fill", (d) => (isLow(d) ? "var(--warn)" : "var(--accent)"));
+    // 2026-11-25：可能原因改為點擊查看，圖上不另標註
+    // 基準線、門檻線的數值標籤（畫在曲線上方，加白底避免被線條遮住）
+    hlabels.forEach(([v, color, label, name]) => {
+      // 標籤放在座標軸左側的留白，不和曲線重疊；窄螢幕則放在圖內左側
+      const g = svg.append("g").style("pointer-events", "none"), out = m.l >= 120;
+      const tg = g.append("text").attr("x", out ? 6 : m.l + 14).attr("y", y(v) - (out ? 2 : 8)).attr("text-anchor", "start").attr("font-size", 13.75).attr("font-weight", 700).attr("fill", color);
+      if (out) { tg.append("tspan").text(name); tg.append("tspan").attr("x", 6).attr("dy", 17).text(label); g.append("line").attr("x1", 84).attr("x2", m.l - 44).attr("y1", y(v)).attr("y2", y(v)).style("stroke", color).style("stroke-dasharray", "2 3"); }
+      else { tg.text(`${name} ${label}`); const bb = tg.node().getBBox(); g.insert("rect", "text").attr("x", bb.x - 6).attr("y", bb.y - 2).attr("width", bb.width + 12).attr("height", bb.height + 4).attr("rx", 4).style("fill", "#fff").style("opacity", 0.95); }
+    });
     const cross = svg.append("line").attr("y1", m.t).attr("y2", H - m.b).style("stroke", "var(--muted)").style("opacity", 0);
     const bis = d3.bisector((d) => toDate(d.d)).center;
+    let pinned = null;
+    const dayAt = (evt) => { const [mx] = d3.pointer(evt); return days[bis(days, x.invert(mx))]; };
+    // 2026-11-25：點擊（或滑過）顯示當天數值；明顯偏低、已知事件、資料異常的日子另列「可能原因與相關因素」
+    const factors = (dd) => { const w = wxOf(dd); if (!w) return "無同期氣象資料"; const N = WXOBS.meta.normal;
+      return `日照率 ${w.rate}%、雲量 ${fmt(w.cloud, 1)}／10` + (w.rad != null && N.rad ? `、日射量為日照充足時的 ${Math.round(w.rad / N.rad * 100)}%` : "") + (w.rain >= 1 ? `、降雨 ${fmt(w.rain, 1)} mm` : ""); };
+    const causeBox = (d) => {
+      if (catOf(d, base, th) === "資料異常") return `<div class="tip-note"><b>資料異常：</b>${GAP_NOTE[d.d] || "當天收集不完整，數值可能偏低"}</div>`;
+      const e = eventOf(d.d);
+      if (!isLow(d) && !e) return "";
+      return `<div class="tip-note"><b>${isLow(d) ? `明顯偏低（低於參考基準 ${fmt(th, 1)} MW）` : e.title + "期間"}</b>可能原因：${causeOf(d.d)}<br>相關因素：${factors(d.d)}<br><span style="font-weight:400">依同期氣象觀測推估，僅供參考${isLow(d) ? "；不納入趨勢計算" : ""}</span></div>`;
+    };
+    const tipHtml = (d) => `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("分類", catOf(d, base, th))}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
+          (wxOf(d.d) ? row("天氣（氣象署觀測）", wxTxt(wxOf(d.d))) : "") + causeBox(d);
     svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", W - m.l - m.r).attr("height", H - m.t - m.b).style("fill", "transparent")
-      .on("mousemove", (evt) => {
-        const [mx] = d3.pointer(evt), d = days[bis(days, x.invert(mx))];
-        cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1);
-        showTip(evt, `<b>${d.d}</b>${row("尖峰發電功率", fmt(d.peak) + " MW")}${row("尖峰時間", d.peakT || "–")}${row("12:00 發電功率", fmt(d.noon) + " MW")}${row("收集筆數", d.n + " / " + SLOTS)}${row("一致筆數", d.cons + " / " + d.n)}` +
-          (wxOf(d.d) ? row("天氣（氣象署觀測）", wxTxt(wxOf(d.d))) : "") +
-          (evOf(d.d) ? `<div class="tip-note">${evOf(d.d).note ? evOf(d.d).title + "影響" : "天氣影響：" + evOf(d.d).title}</div>` : isLow(d) && !wxOf(d.d) ? `<div class="tip-note">尖峰明顯偏低，原因待查</div>` : ""));
-      })
-      .on("mouseleave", () => { cross.style("opacity", 0); hideTip(); });
+      .on("mousemove", (evt) => { if (pinned) return; const d = dayAt(evt); cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1); showTip(evt, tipHtml(d)); })
+      .on("click", (evt) => { const d = dayAt(evt); pinned = pinned === d.d ? null : d.d; if (!pinned) { cross.style("opacity", 0); hideTip(); return; } cross.attr("x1", x(toDate(d.d))).attr("x2", x(toDate(d.d))).style("opacity", 1); showTip(evt, tipHtml(d) + `<div class="tip-pin" style="color:var(--muted);font-size:12.5px;margin-top:4px">已固定，再點一次關閉</div>`); })
+      .on("mouseleave", () => { if (pinned) return; cross.style("opacity", 0); hideTip(); });
     // 事件標註：在期間內最低點旁標出數值，與平常（中位數）對照；右側空間不足時改放左側；窄螢幕省略
-    if (W >= 640) evs.forEach((e, i) => {
+    if (W >= 640) evs.forEach((e, i) => { // 只標註已知事件（颱風）
       const lo = days.filter((d) => d.d >= e.from && d.d <= e.to && d.peak != null).sort((a, b) => a.peak - b.peak)[0]; if (!lo) return;
       const right = x(new Date(toDate(e.to).getTime() + DAY / 2)), left = x(new Date(toDate(e.from).getTime() - DAY / 2));
       const nxt = evs.filter((o) => o.from > e.to).map((o) => x(new Date(toDate(o.from).getTime() - DAY / 2)));
@@ -520,7 +559,7 @@
       g.append("line").attr("x1", px + (onL ? -6 : 6)).attr("y1", py).attr("x2", tx + (onL ? 4 : -4)).attr("y2", ty - 4).style("stroke", "var(--warn)").style("stroke-width", 1.2);
       const t = g.append("text").attr("x", tx).attr("y", ty).attr("font-size", 13.75).attr("fill", "var(--ink)").attr("text-anchor", onL ? "end" : "start");
       t.append("tspan").attr("font-weight", 700).attr("fill", "var(--warn)").text(`尖峰約 ${fmt(lo.peak, 0)} MW`);
-      t.append("tspan").attr("x", tx).attr("dy", 18).attr("fill", "var(--ink2)").text(`平常約 ${fmt(med, 0)} MW`);
+      t.append("tspan").attr("x", tx).attr("dy", 18).attr("fill", "var(--ink2)").text(`較基準下降 ${fmt((1 - lo.peak / base) * 100, 0)}%`);
     });
     renderTrendNotes(days);
   }
@@ -530,11 +569,11 @@
   const UNIT_LOW = 0.3; // 個別機組尖峰低於自己中位數的 30% 視為異常
   function inferAnomalies(days) {
     const med = (k) => d3.median(days.filter((d) => d[k] != null), (d) => d[k]);
-    const M = { peak: med("peak"), lg: med("lg"), sm: med("sm") };
+    const M = { peak: med("peak"), lg: med("lg"), sm: med("sm") }, th = lowTh(days), base = baseOf(days);
     const out = [];
     days.forEach((d) => {
       const r = (k) => (d[k] != null && M[k] ? d[k] / M[k] : null);
-      const low = r("peak") != null && r("peak") < LOW_RATIO, gap = d.n < SLOTS * 0.9;
+      const low = d.peak != null && d.peak <= th, gap = d.n < SLOTS * 0.9;
       let type = null;
       if (gap) type = "gap";
       else if (low && r("lg") != null) type = r("lg") < LOW_RATIO ? "wide" : "est";
@@ -559,12 +598,8 @@
   const WX_RANK = { 陰雨: 2, 多雲: 1, 晴: 0 };
   function wxBands(days) {
     if (!WXOBS) return [];
-    return inferAnomalies(days).groups.filter((g) => ["low", "wide", "est"].includes(g.type) && !EVENTS.some((e) => e.from <= g.to && e.to >= g.from)).map((g) => {
-      const ws = []; for (let t = toDate(g.from); t <= toDate(g.to); t = new Date(t.getTime() + DAY)) { const w = wxOf(ymd(t)); if (w) ws.push(w); }
-      if (!ws.length) return null;
-      const cats = [...new Set(ws.map((w) => w.c))];
-      return { from: g.from, to: g.to, title: wxTitle(ws), tag: wxTag(ws) || cats.slice().sort((a, b) => WX_RANK[b] - WX_RANK[a])[0] };
-    }).filter(Boolean);
+    return inferAnomalies(days).groups.filter((g) => ["low", "wide", "est"].includes(g.type) && !EVENTS.some((e) => e.from <= g.to && e.to >= g.from))
+      .map((g) => ({ from: g.from, to: g.to, kind: "low", title: "尖峰偏低（異常資料）", tag: "偏低" }));
   }
 
   function renderTrendNotes(days) {
@@ -588,10 +623,11 @@
         const drop = `發電降至約平常的 ${pc(r)}`;
         if (ws.length) {
           usedObs = true;
-          title = e ? e.title : wxTitle(ws);
           const lo = ws.reduce((m, w) => (w.rate < m.rate ? w : m)), maxRain = Math.max(...ws.map((w) => w.rain));
           const one = ws.length === 1, rain = maxRain >= 1 ? `、降雨${one ? "" : "最多"} ${fmt(maxRain, 1)} mm` : "";
-          text = `日照率${one ? "" : "最低"}僅 ${lo.rate}%（日照充足時約 ${N.rate}%）${rain}，${drop}`;
+          const loPk = it.reduce((m, o) => (o.day && o.day.peak != null && (m == null || o.day.peak < m) ? o.day.peak : m), null);
+          if (e) { title = e.title; text = `日照率${one ? "" : "最低"}僅 ${lo.rate}%（日照充足時約 ${N.rate}%）${rain}，${drop}`; }
+          else { const B = baseOf(days); title = "明顯偏低"; text = `尖峰${one ? "" : "最低"}約 ${fmt(loPk, 0)} MW，低於參考基準 ${fmt(B * (1 - LOW_DROP), 1)} MW；可能原因：${causeOf(g.from)}（同期氣象觀測：${wxTitle(ws)}，日照率${one ? "" : "最低"} ${lo.rate}%${rain}；僅供參考）`; }
           tag = "觀測";
         } else {
           title = e ? e.title : "天氣不佳";
@@ -602,9 +638,10 @@
       const tagH = tag === "觀測" ? '<span class="obs-tag">氣象署觀測</span>' : tag ? '<span class="est-tag">推估</span>' : "";
       return `<li><span class="pill${tag === "推估" ? " est" : ""}">${md(range[0])}${range[1] !== range[0] ? "～" + md(range[1]) : ""}</span><b>${title}</b>：${text}${tagH}</li>`;
     });
-    el.innerHTML = items.length ? `<span class="tn-h">數據異常說明</span><ul>${items.join("")}</ul>` +
-      (usedObs ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` +
-        (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依雲量（雲遮住天空的比例，全天空分 10 份），晴 0～4、多雲 5～8、陰 9～10（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>，見頁面下方用詞表）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p>` : "") : "") : "";
+    // 2026-11-25：不再列出「數據異常說明」清單，改在圖上點擊查看可能原因與因素；此處只保留資料來源與判定標準
+    el.innerHTML = WXOBS ? "" +
+      (WXOBS ? `<p class="tn-src">天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，${WXOBS.meta.stations.join("、")} ${WXOBS.meta.stations.length} 站平均${WXOBS.meta.partial ? `（${md(WXOBS.meta.partial.from)} 起為 ${WXOBS.meta.partial.n} 站）` : ""}；資料至 ${md(WXOBS.meta.updated)}，發生數據異常時更新</p>` +
+        (WXOBS.days[WXOBS.meta.updated] && WXOBS.days[WXOBS.meta.updated].s ? `<p class="tn-src">天氣用詞說明：<br>・天空狀況：依雲量（雲遮住天空的比例，全天空分 10 份），晴 0～4、多雲 5～8、陰 9～10（出處：中央氣象署<a href="https://www.cwa.gov.tw/V8/C/K/Encyclopedia/nous/index.html#introduction-05" target="_blank" rel="noopener">「常見的天氣預報用詞」</a>，見頁面下方用詞表）<br>・日照：有日照的時間占白天的比例，充足 ≥ 70%、適中 30～69%、不足 &lt; 30%（出處：世界氣象組織<a href="https://www.weather.gov/media/epz/mesonet/CWOP-WMO8.pdf" target="_blank" rel="noopener">《氣象儀器與觀測方法指南》（WMO-No.8，2008）第 8.1.3 節</a>）<br>・有雨：5 站中 3 站以上日雨量 ≥ 1 mm（本系統自訂）</p><p class="tn-src"><b>判定標準</b>（本網站自訂之觀測分類標準，非官方異常判定標準）：以觀測期間內資料完整之每日尖峰功率平均值為基準<br>・參考基準 ＝ 平均 × (1 − 30%) ＝ ${fmt(baseOf(days), 0)} × 0.7 ＝ ${fmt(lowTh(days), 1)} MW<br>・高於平均：&gt; ${fmt(baseOf(days), 0)} MW<br>・低於或等於平均：&gt; ${fmt(lowTh(days), 1)} MW，且 ≤ ${fmt(baseOf(days), 0)} MW<br>・明顯偏低：≤ ${fmt(lowTh(days), 1)} MW，標註可能原因（依同期氣象觀測，僅供參考），不納入趨勢與週彙總計算<br>・資料異常：缺值、收集不完整等，獨立判定</p>` : "") : "") : "";
   }
 
   function statRow(label, sub, ds, extra, expDays) {
@@ -635,7 +672,7 @@
     const dir = Math.abs(pct) < 0.005 ? "大致持平" : wk < 0 ? `每週約下降 ${fmt(-wk, 0)} MW（約 ${fmt(-pct * 100, 1)}%）` : `每週約上升 ${fmt(wk, 0)} MW（約 ${fmt(pct * 100, 1)}%）`;
     const nEv = skip.filter((d) => eventOf(d.d)).length, nWx = skip.length - nEv;
     const evNames = [...new Set(skip.filter((d) => eventOf(d.d)).map((d) => eventOf(d.d).title))].join("、");
-    const exTxt = [nEv ? `${evNames} ${nEv} 天` : "", nWx ? `天氣異常日（氣象署觀測）${nWx} 天` : ""].filter(Boolean).join("、");
+    const exTxt = [nEv ? `${evNames} ${nEv} 天` : "", nWx ? `明顯偏低 ${nWx} 天` : ""].filter(Boolean).join("、");
     $("regSum").innerHTML = `<b>近 ${days.length} 天尖峰${dir}</b>　趨勢強度：${lvl}（R² ${fmt(R.r2, 2)}）` +
       `${wk < 0 && R.r2 >= 0.3 ? "；推測與秋冬日照時間變短、太陽角度變低有關" : ""}<span class="est-tag">推估資訊</span>` +
       `<span class="reg-note">${skip.length ? `已排除 ${exTxt}；` : ""}由台電公布值計算的統計推估，非台電公布值；資料期間短，僅供參考</span>`;
