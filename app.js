@@ -433,7 +433,7 @@
     $("statsNote").textContent = j.sample ? "目前顯示的是示範資料（電腦端收集，至 2026-11-04）。" : "";
     if (!days.length) { $("statsKpis").innerHTML = '<p class="small muted">尚無統計資料</p>'; return; }
     const lastDay = days[days.length - 1].d, s = summarize(days);
-    $("statsRange").textContent = `統計期間 ${start.replace(/-/g, "/")}～${lastDay.replace(/-/g, "/")}（已結束的日期），資料更新於 ${j.generatedAt || "–"}`;
+    $("statsRange").textContent = `統計期間 ${start.replace(/-/g, "/")}～${lastDay.replace(/-/g, "/")}（不含今日），資料更新於 ${j.generatedAt || "–"}`;
     const k = (lbl, val, unit, note) => `<div class="kpi"><div class="lbl">${lbl}</div><div class="val">${val}<small>${unit}</small></div>${note ? `<div class="kpi-note">${note}</div>` : ""}</div>`;
     $("statsKpis").innerHTML =
       k("收集天數", s.days, "天", `${md(start)}～${md(lastDay)}`) +

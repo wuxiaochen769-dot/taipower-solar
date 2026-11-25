@@ -170,6 +170,7 @@ details.method > summary::-webkit-details-marker { display: none; }
 details.method > summary::before { content: "▸"; display: inline-block; width: 1.2em; transition: transform .15s; }
 details.method[open] > summary::before { transform: rotate(90deg); }
 details.method > :not(summary) { margin: 0 14px 14px; }
+details.method > table.units { width: calc(100% - 28px); }
 .method-table td:first-child { white-space: nowrap; font-weight: 600; }
 .method-table td { vertical-align: top; }
 

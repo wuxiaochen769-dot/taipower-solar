@@ -7,7 +7,7 @@
 <meta name="description" content="台電太陽能（台電自有＋購電）全台即時發電功率、各機組發電功率、台電自有發電站分布與資料一致性">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261125b">
+<link rel="stylesheet" href="style.css?v=20261125c">
 </head>
 <body>
 <header class="top">
@@ -100,8 +100,8 @@
   <section class="panel" aria-labelledby="h-terms">
     <div class="panel-head"><h2 id="h-terms">看懂儀表板的名詞</h2></div>
     <dl class="terms">
-      <dt>裝置容量</dt><dd>案場設備的發電規模（MW），代表最大的發電功率。</dd>
-      <dt>功率與發電量</dt><dd><b>發電功率（MW）</b>是某一瞬間的發電能力；<b>發電量（MWh）</b>是一段時間累積的電量，1 MWh＝1,000 度。本網站顯示的數值為發電功率。</dd>
+      <dt>裝置容量</dt><dd>案場設備的額定發電規模（MW），實際發電功率通常低於此值。</dd>
+      <dt>功率與發電量</dt><dd><b>發電功率（MW）</b>是某一瞬間正在發出的電力；<b>發電量（MWh）</b>是一段時間累積的電量，例如 1&nbsp;MW 持續 1&nbsp;小時＝1&nbsp;MWh＝1,000&nbsp;度（1&nbsp;度＝1&nbsp;kWh）。本網站顯示的數值為發電功率。</dd>
       <dt>淨發電量</dt><dd>台電資料的欄位名稱，實際上是各機組在某個時刻送入電網的<b>發電功率</b>（MW），每 10 分鐘更新一次；「淨」代表已扣除電站自用電。</dd>
       <dt>發購電量</dt><dd>台電自有案場的發電量，加上台電向民間案場購買的電量。</dd>
       <dt>大型案場</dt><dd>台電向民間購電、且在台電資料中個別列出的機組，例如碩力光、崙尾光、星崙光、向陽光。</dd>
@@ -114,7 +114,7 @@
     <ol class="notes">
       <li><b>資料更新</b>：台電每 10 分鐘更新一次，本網站每 5 分鐘讀取；台電資料約延遲 10～15 分鐘。</li>
       <li><b>購電與台電自有發電</b>：全台大部分太陽光電案場由民間業者設置，台電向其購買電力，因此購電量遠高於台電自有發電。</li>
-      <li><b>資料一致性</b>：各機組發電量加總與台電公布小計相差在 ±0.05 MW 內即為一致，代表資料收集沒有遺漏，不代表台電數值本身的準確度。</li>
+      <li><b>資料一致性</b>：各機組發電功率加總與台電公布小計相差在 ±0.05 MW 內即為一致，代表資料收集沒有遺漏，不代表台電數值本身的準確度。</li>
     </ol>
   </section>
   </div>
@@ -182,9 +182,9 @@
   </section>
 
   <footer class="foot">
-    <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺<a href="https://data.gov.tw/dataset/17141" target="_blank" rel="noopener">「台灣電力公司再生能源各場址資料」</a>（2024 年版，裝置容量可能已變動），經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
-    <p>彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</p>
-    <p>裝置容量空白者為試運轉案場，依台電註10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。<span class="dev-only">資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</span></p>
+    <p>資料來源：政府資料開放平臺<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「台灣電力公司各機組發電量即時資訊（含外購電力）」</a>（政府資料開放授權條款第 1 版）；台電自有場址取自政府資料開放平臺<a href="https://data.gov.tw/dataset/17141" target="_blank" rel="noopener">「台灣電力公司再生能源各場址資料」</a>（2024 年版，裝置容量可能已變動），經緯度為村里或鄉鎮中心點，屬概略位置。行政區圖資：內政部（taiwan-atlas, MIT）。</p>
+    <p>彰濱光的裝置容量依台電即時資料為 100 MW，台電<a href="https://data.gov.tw/dataset/29938" target="_blank" rel="noopener">「太陽光電發電量及平均單位裝置容量每日發電量統計表」</a>自 2026 年 8 月起為 116.5 MW。</p>
+    <p>裝置容量空白者為試運轉案場，依台電註&nbsp;10：電廠（機組）換發／取得電業執照前進行測試（試運轉）等程序時，暫不計入裝置容量且不揭露其發電百分比。<span class="dev-only">資料一致性只代表各機組加總與台電小計相符，不代表台電估算值本身的準確度。</span></p>
     <p class="dev-login" id="devLogin">
       <button type="button" class="linkish" id="devLoginOpen">通關碼</button>
       <span class="dev-login-form" id="devLoginForm" hidden>
@@ -246,13 +246,13 @@
           <tbody>
             <tr><td>每日應有筆數</td><td>(18:00 − 06:00) ÷ 10 分鐘 ＋ 1 ＝ 73</td><td>06:00～18:00（含頭尾）每 10 分鐘一筆；＋1 是包含結尾 18:00 這一筆</td></tr>
             <tr><td>收集完整度</td><td>實際筆數 ÷（天數 × 73）</td><td>衡量是否每個時段都有收到資料</td></tr>
-            <tr><td>各機組加總</td><td>Σ 各機組淨發電量</td><td>不含台電公布的「小計」列</td></tr>
+            <tr><td>各機組加總</td><td>所有機組的發電功率相加</td><td>不含台電公布的「小計」列</td></tr>
             <tr><td>一致判定</td><td>｜各機組加總 − 台電小計｜≤ 0.05 MW</td><td>台電小計只到小數第 1 位，四捨五入誤差最大 ±0.05</td></tr>
             <tr><td>資料一致性</td><td>一致筆數 ÷ 實際筆數</td><td>代表收集沒有遺漏，不代表台電數值本身的準確度</td></tr>
             <tr><td>每日尖峰發電功率</td><td>當日 06:00～18:00 台電小計的最大值</td><td>10 分鐘取樣的瞬間發電功率（MW），不是發電量（MWh）</td></tr>
-            <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天，不含異常事件日及天氣異常日；月：依日曆月份</td></tr>
-            <tr><td>整體趨勢（推估）</td><td>最小平方法線性迴歸 y ＝ a ＋ b·x</td><td>x 為日數、y 為每日尖峰；排除異常事件日及天氣異常日（僅限當天尖峰低於中位數 80% 者）；每週變化 ＝ b × 7；R² 越接近 1，趨勢越明確</td></tr>
-            <tr><td>月收集完整度</td><td>實際筆數 ÷（統計期間天數 × 73）</td><td>該月 1 日（10 月自 10/13）至月底或最新已結束日；整天未收到也會計入</td></tr>
+            <tr><td>週／月平均尖峰</td><td>每日尖峰發電功率的平均</td><td>週：自 10/13 起每 7 天，不含異常事件日及尖峰明顯偏低（≤ 參考基準）的日子；月：依日曆月份</td></tr>
+            <tr><td>整體趨勢（推估）</td><td>最小平方法線性迴歸 y ＝ a ＋ b·x</td><td>x 為日數、y 為每日尖峰；排除異常事件日及尖峰明顯偏低（≤ 參考基準）的日子；每週變化 ＝ b × 7；R² 越接近 1，趨勢越明確</td></tr>
+            <tr><td>月收集完整度</td><td>實際筆數 ÷（統計期間天數 × 73）</td><td>該月 1 日（10 月自 10/13）至月底，當月不含今日；整天未收到也會計入</td></tr>
           </tbody>
         </table>
       </details>
@@ -271,18 +271,17 @@
       <details class="method">
         <summary>統計範圍與限制</summary>
         <ol class="notes">
-          <li><b>個別機組</b>：彰濱光的裝置容量依台電即時資料為 100 MW，台電太陽光電月報自 2026 年起為 116.5 MW；南鹽光自 2026/10/29 起台電即時資料長時間為 0.025 MW（台電未註明原因）。</li>
-          <li><b>主要不確定性</b>：台電小計中約 84%～88% 為台電依取樣比例估算的「其它購電太陽能」（台電註 7），整體準確度主要取決於台電的估算。</li>
-          <li>統計自 2026/10/13 起（10/09～10/12 為系統建置期），只計已結束的日期，當天資料於隔天加入。</li>
-          <li>本頁資料來自雲端收集，與電腦端紀錄可能略有差異（見「雙重收集比對」）。</li>
-          <li>台電資料約延遲 10～15 分鐘；「其它購電太陽能」為台電依取樣比例估算的整併項目（台電註 7）。</li>
+          <li><b>個別機組</b>：彰濱光的裝置容量依台電即時資料為 100 MW，台電<a href="https://data.gov.tw/dataset/29938" target="_blank" rel="noopener">「太陽光電發電量及平均單位裝置容量每日發電量統計表」</a>自 2026 年 8 月起為 116.5 MW。</li>
+          <li>統計自 2026/10/13 起（10/09～10/12 為系統建置期），不含今日；當天資料於隔天加入。</li>
+          <li>本頁統計使用雲端收集的資料；電腦端另存一份備份，兩者比對結果見上方「驗證方式與結果」。</li>
+          <li>「其它購電太陽能」為台電依取樣比例估算的整併項目（台電註&nbsp;7）。</li>
           <li>平均值、完整度、一致性為本網站依台電公布的發電功率計算的統計值。</li>
         </ol>
       </details>
     </section>
   </div>
   <footer class="foot">
-    <p>資料來源：台灣電力公司<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「各機組發電量」開放資料</a>（政府資料開放授權條款第 1 版），由本系統以 Google Apps Script 每 5 分鐘收集並存入雲端，再依上述公式計算每日統計。數據異常說明的天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，臺南、永康、高雄、田中、古坑 5 站每日觀測。</p>
+    <p>資料來源：政府資料開放平臺<a href="https://data.gov.tw/dataset/8931" target="_blank" rel="noopener">「台灣電力公司各機組發電量即時資訊（含外購電力）」</a>（政府資料開放授權條款第 1 版），由本系統以 Google Apps Script 每 5 分鐘收集並存入雲端，再依上述公式計算每日統計。「可能原因」所列的天氣資料：交通部中央氣象署<a href="https://codis.cwa.gov.tw/StationData" target="_blank" rel="noopener">「氣候觀測資料查詢服務（CODiS）」</a>，臺南、永康、高雄、田中、古坑 5 站每日觀測。</p>
     <p>程式由 Claude 協助撰寫；架構設計、規則訂定與驗證由實習生負責。</p>
   </footer>
 </main>
@@ -292,8 +291,8 @@
 
 <script src="d3.min.js"></script>
 <script src="topojson-client.min.js"></script>
-<script src="config.js?v=20261125b"></script>
-<script src="app.js?v=20261125b"></script>
+<script src="config.js?v=20261125c"></script>
+<script src="app.js?v=20261125c"></script>
 <script>
 // 主題分頁切換：網址 #intro／#today／#stats 可直接開啟指定分頁
 (function () {
