@@ -745,7 +745,7 @@
   function initJumpers(scene) {
     const NS = "http://www.w3.org/2000/svg";
     // 草地區域（圖的座標）：中心點與活動半徑
-    const ZONES = [[580, 20, 30], [90, 310, 34], [80, 560, 30], [1010, 590, 24], [745, 10, 30]];
+    const ZONES = [[140, 430, 26], [760, 380, 24], [580, 520, 22]];
     const LOOKS = [["#3b82f6", "#334155", "#3a2a1e"], ["#ef8354", "#1f2937", "#111827"], ["#10b981", "#475569", "#6b4f3a"], ["#a855f7", "#374151", "#2b2b2b"], ["#f59e0b", "#1e3a8a", "#5b3a29"]];
     const person = ([shirt, pants, hair]) => {
       const skin = "#f2c9a5";
@@ -807,15 +807,15 @@
     initJumpers(scene);
     const INFO = {
       house: { t: "屋頂型小型案場", li: ["在建物屋頂設置光電板", "發的電經電表送入台電電網"] },
-      sun: { n: 1, t: "太陽光", li: ["提供發電的能量", "日射量越高，發電越多"] },
-      panel: { n: 2, t: "光電板", li: ["把陽光轉成直流電（DC）"] },
-      jbox: { n: 3, t: "接線箱", li: ["匯集多組光電板的直流電", "設有保護裝置"] },
-      inverter: { n: 4, t: "變流器", li: ["直流電轉成交流電（AC）", "才能送進台電電網"] },
-      meter: { n: 5, t: "計量（電表）", li: ["計算送入電網的電量（度＝kWh）", "台電依此計算購電量"],
+      sun: { n: 1, t: "太陽輻射", li: ["提供發電的能量（圖中橘色光線，不是電線）", "日射量越高，發電越多"] },
+      panel: { n: 2, t: "太陽光電模組", li: ["把光能轉換為直流電（DC）"] },
+      jbox: { n: 3, t: "直流匯流箱（接線箱）", li: ["匯集多組模組的直流電", "設有保護裝置"] },
+      inverter: { n: 4, t: "變流器（Inverter）", li: ["直流電轉成交流電（AC）", "才能送進台電電網"] },
+      meter: { n: 5, t: "電能計量設備（電表）", li: ["計量送入電網的電能（度＝kWh）", "台電依此計算購電量"],
         note: ["小型案場＝台電資料的「其它購電太陽能」，台電依取樣比例估算", "電表記錄「發電量」；本網站顯示的是「發電功率」"] },
-      grid: { n: 6, t: "配電線路", li: ["經電表送入路旁的配電線路", "就近送到附近用戶"] },
-      user: { n: 7, t: "用戶", li: ["家庭、工廠用電", "桿上變壓器把電壓降到住戶可用"] },
-      sub: { n: 8, t: "變電所", li: ["轉換電壓；連接配電與輸電線路", "附近用不完的電送往其他地區"] },
+      grid: { n: 6, t: "配電線路（電線桿）", li: ["低壓配電線路：經電表、接戶線接到電線桿", "桿上配電變壓器：低壓、高壓互轉", "高壓配電線路（11,400&nbsp;伏特）：連接用戶與變電所"] },
+      user: { n: 7, t: "用戶", li: ["住宅用電：經桿上變壓器降為 110/220&nbsp;伏特", "工商業用電：依用電規模接低壓或高壓"] },
+      sub: { n: 6, t: "變電所", li: ["電壓轉換：配電、輸電電壓互轉", "電力調度：配合台電調度，將用不完的電送往其他地區"] },
     };
     let pinned = null, hideT = null;
     const place = (g) => {
@@ -834,7 +834,7 @@
       const s = INFO[g.dataset.k]; if (!s) return;
       scene.querySelectorAll(".hs").forEach((x) => x.classList.toggle("on", x === g));
       pop.innerHTML = `<b>${s.n ? `<span class="pv-n">${s.n}</span>` : ""}${s.t}</b><ul>${s.li.map((x) => `<li>${x}</li>`).join("")}</ul>` +
-        (s.note ? `<ul class="pv-note">${s.note.map((x) => `<li>${x}</li>`).join("")}</ul>` : "");
+        (s.note ? (s.noteT ? `<div class="pv-note"><b>${s.noteT}</b><ul>${s.note.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : `<ul class="pv-note">${s.note.map((x) => `<li>${x}</li>`).join("")}</ul>`) : "");
       pop.hidden = false; place(g);
     };
     const hide = () => { hideT = setTimeout(() => { if (pinned) return; pop.hidden = true; scene.querySelectorAll(".hs.on").forEach((x) => x.classList.remove("on")); }, 120); };

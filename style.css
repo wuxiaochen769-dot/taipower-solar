@@ -252,6 +252,15 @@ html:not(.dev) .day-grid { grid-template-columns: minmax(0, 1fr); }
 .pv-pop .pv-n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--tab, var(--accent)); color: #fff; font-size: 13px; }
 .pv-pop ul { margin: 0; padding-left: 18px; }
 .pv-pop ul.pv-note { margin-top: 6px; padding: 6px 8px 6px 24px; background: var(--grid); border-radius: 6px; font-size: 14.375px; color: var(--ink2); }
+.pv-pop div.pv-note { margin-top: 6px; padding: 6px 8px; background: var(--grid); border-radius: 6px; font-size: 14.375px; color: var(--ink2); }
+.pv-pop div.pv-note b { display: block; font-size: inherit; margin: 0 0 2px; color: var(--ink); }
+.pv-pop div.pv-note ul { padding-left: 16px; }
+.pv3d .pv-fn-box { fill: #eef0f2; stroke: #d1d5db; stroke-width: 1; }
+.pv3d .pv-fn-t { font-size: 16px; font-weight: 700; fill: #111827; }
+.pv3d .pv-fn-li { font-size: 15px; font-weight: 500; fill: #111827; }
+.pv-fn-m { display: none; margin-top: 8px; padding: 6px 8px; background: #eef0f2; border-radius: 6px; font-size: 15px; color: #111827; }
+.pv-fn-m b { color: #111827; } .pv-fn-m ul { margin: 2px 0 0; padding-left: 18px; }
+@media (max-width: 640px) { .pv3d .pv-fn { display: none; } .pv-fn-m { display: block; } }
 .pv3d .pv-hint { text-align: center; }
 @media (max-width: 640px) { .pv-pop { position: static; max-width: none; margin-top: 8px; box-shadow: none; } }
 .pv3d .pv-scene-lbl.sm { font-size: 13px; }
